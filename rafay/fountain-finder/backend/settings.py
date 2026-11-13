@@ -150,7 +150,7 @@ if NGROK_URL:
     CSRF_TRUSTED_ORIGINS = [NGROK_URL]
 
 # Only the frontend origin is allowed to make credentialed API requests.
-CORS_ALLOWED_ORIGINS = ["https://thirsttrips.com"]
+CORS_ALLOWED_ORIGINS = ["https://thirsttrips-ua.ca"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_URLS_REGEX = r"^/api/.*$"
 CSRF_TRUSTED_ORIGINS = [*globals().get("CSRF_TRUSTED_ORIGINS", []), *CORS_ALLOWED_ORIGINS]
@@ -162,3 +162,6 @@ SESSION_COOKIE_SAMESITE = "None" if CROSS_SITE_COOKIES else "Lax"
 CSRF_COOKIE_SAMESITE = "None" if CROSS_SITE_COOKIES else "Lax"
 SESSION_COOKIE_SECURE = CROSS_SITE_COOKIES
 CSRF_COOKIE_SECURE = CROSS_SITE_COOKIES
+
+# Shared only with the trusted uploader server. Empty disables uploads.
+UPLOAD_TOKEN = os.environ.get("UPLOAD_TOKEN", "")

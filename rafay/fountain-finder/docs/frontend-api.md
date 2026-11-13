@@ -4,7 +4,7 @@ Django stores the data in SQLite. Frontends use these HTTP endpoints instead of 
 
 ## Hosting and sessions
 
-Recommended: serve the frontend and proxy `/api/` to Django on the same HTTPS domain. This avoids cross-origin cookie issues. The backend allows credentialed API requests from `https://thirsttrips.com` and trusts that origin for CSRF. Other origins, including www, are not enabled. Having a domain alone does not configure this proxy.
+Recommended: serve the frontend and proxy `/api/` to Django on the same HTTPS domain. This avoids cross-origin cookie issues. The backend allows credentialed API requests from `https://thirsttrips-ua.ca` and trusts that origin for CSRF. Other origins, including www, are not enabled. Having a domain alone does not configure this proxy.
 
 During development, a frontend dev-server proxy can forward `/api/` to `http://127.0.0.1:8000` when running on the backend computer, or the backend's ngrok URL for a remote teammate. Preserve cookies, and configure Django's trusted origins for the frontend origin where necessary. Do not put ngrok authtokens in frontend code.
 
@@ -93,10 +93,45 @@ Only administrators should mark trusted accounts as staff using Django admin. Re
 
 JSON endpoints generally return 400 for validation, 401 for missing login, 403 for insufficient permissions, and 415 for a non-JSON write body. Form validation errors are returned under `errors`. Check-ins still use a static NFC token and do not prove physical presence.
 
-## thirsttrips.com and ngrok
+## thirsttrips-ua.ca and ngrok
 
 Restart Django with `NGROK_URL` set to the actual HTTPS backend tunnel URL. This enables Secure, SameSite=None cookies for the cross-site connection. Frontend requests must use `credentials: 'include'` and the CSRF token returned by `/api/auth/csrf/`, then use the replacement token returned after login or signup. Never try to read the backend cookie from frontend JavaScript.
 
 For a different HTTPS backend without NGROK_URL, set `CROSS_SITE_COOKIES=1` and configure its hostname in ALLOWED_HOSTS. DNS/hosting and reverse proxy configuration are separate from Django CORS settings.
 
-Some browsers block third-party cookies even with these settings. For reliable login, proxy `/api/` through https://thirsttrips.com so frontend and backend share an origin. Cross-site ngrok sessions need real browser verification. Staff permissions remain required for facility writes and manual point adjustments.
+Some browsers block third-party cookies even with these settings. For reliable login, proxy `/api/` through https://thirsttrips-ua.ca so frontend and backend share an origin. Cross-site ngrok sessions need real browser verification. Staff permissions remain required for facility writes and manual point adjustments.
+
+## Trusted uploader endpoint
+
+`POST /api/facilities/create/` uses a separate server-to-server shared secret, not a Django staff session. Set `UPLOAD_TOKEN` in Django's environment before starting the server. Without it, uploads return 503; an incorrect or missing `X-Upload-Token` header returns 401.
+
+The uploader server uses the same value as `DJANGO_UPLOAD_TOKEN` and sends it in `X-Upload-Token`. Keep both environment values private; never embed them in browser code. This endpoint is CSRF-exempt because it authenticates every request using the explicit token rather than cookies.
+
+JSON body:
+
+```json
+{"latitude":53.52,"longitude":-113.53,"building":"Library","floor":"M2","accessible":true}
+```
+
+Building is required, with a maximum of 200 characters. Floor is required: digits, optionally preceded by one letter; it is trimmed and uppercased. Integer floors also work. Coordinates are required, finite, and range-checked. `accessible` defaults to false and is true only for JSON `true`. Other fields, including client-supplied IDs and names, are rejected.
+
+Returns 201 with the facility fields including its assigned `id` and generated name `f<id>`. IDs are database-generated and may contain gaps. The auto-increment primary key prevents duplicate IDs across successful concurrent inserts without a process-local lock. SQLite may still return database-lock errors under heavy concurrent writes; retry policy and upload deduplication are not implemented. Retrying a successful request creates another facility.
+
+macOS Django terminal:
+
+```bash
+source ../venv/bin/activate
+export UPLOAD_TOKEN="your-long-random-secret"
+export NGROK_URL="https://partridge-stubble-even.ngrok-free.dev"
+python manage.py runserver
+```
+
+Uploader machine (PowerShell):
+
+```powershell
+$env:DJANGO_UPLOAD_TOKEN = "your-long-random-secret"
+$env:DJANGO_API_URL = "https://partridge-stubble-even.ngrok-free.dev/api/nearby/"
+npm.cmd run tunnel
+```
+
+The uploader application itself lives outside this Django repository and has not been exercised by Django's tests.

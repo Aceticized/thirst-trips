@@ -1,8 +1,10 @@
 from django.urls import path
 from . import api
+from .upload import create_facility
 from .views import nearby_facilities, profile
 
 urlpatterns = [
+    path("facilities/create/", create_facility, name="create-facility"),
     path("auth/csrf/", api.csrf),
     path("auth/register/", api.register),
     path("auth/login/", api.sign_in),

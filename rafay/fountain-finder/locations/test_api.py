@@ -106,26 +106,26 @@ class JsonApiTests(TestCase):
 class FrontendOriginTests(TestCase):
     def test_approved_origin_preflight(self):
         response = self.client.options(
-            "/api/facilities/", HTTP_ORIGIN="https://thirsttrips.com",
+            "/api/facilities/", HTTP_ORIGIN="https://thirsttrips-ua.ca",
             HTTP_ACCESS_CONTROL_REQUEST_METHOD="POST",
             HTTP_ACCESS_CONTROL_REQUEST_HEADERS="content-type,x-csrftoken",
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Access-Control-Allow-Origin"], "https://thirsttrips.com")
+        self.assertEqual(response["Access-Control-Allow-Origin"], "https://thirsttrips-ua.ca")
         self.assertEqual(response["Access-Control-Allow-Credentials"], "true")
         self.assertIn("x-csrftoken", response["Access-Control-Allow-Headers"])
 
     def test_unapproved_origins_and_admin_not_enabled(self):
         response = self.client.get("/api/facilities/", HTTP_ORIGIN="https://example.com")
         self.assertNotIn("Access-Control-Allow-Origin", response)
-        response = self.client.get("/admin/login/", HTTP_ORIGIN="https://thirsttrips.com")
+        response = self.client.get("/admin/login/", HTTP_ORIGIN="https://thirsttrips-ua.ca")
         self.assertNotIn("Access-Control-Allow-Origin", response)
 
     def test_csrf_accepts_frontend_origin_with_valid_token(self):
         client = Client(enforce_csrf_checks=True)
-        token = client.get("/api/auth/csrf/", HTTP_ORIGIN="https://thirsttrips.com").json()["csrfToken"]
+        token = client.get("/api/auth/csrf/", HTTP_ORIGIN="https://thirsttrips-ua.ca").json()["csrfToken"]
         response = client.post("/api/auth/login/", json.dumps({"username": "none", "password": "none"}),
-                               content_type="application/json", HTTP_ORIGIN="https://thirsttrips.com",
+                               content_type="application/json", HTTP_ORIGIN="https://thirsttrips-ua.ca",
                                HTTP_X_CSRFTOKEN=token)
         self.assertEqual(response.status_code, 401)  # Authentication reached; no CSRF rejection.
         response = client.post("/api/auth/login/", "{}", content_type="application/json",

@@ -16,7 +16,7 @@ class Facility(models.Model):
     facility_type = models.CharField(
         max_length=20, choices=Type.choices, default=Type.FOUNTAIN
     )
-    building = models.CharField(max_length=100)
+    building = models.CharField(max_length=200)
     floor = models.CharField(max_length=20, blank=True)
     latitude = models.FloatField(
         validators=[MinValueValidator(-90), MaxValueValidator(90)]
