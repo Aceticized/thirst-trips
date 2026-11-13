@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Navigator</title>
-  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -30,6 +30,14 @@
         <button id="calib-right" type="button">+</button>
       </div>
     </div>
+  </div>
+
+  <button id="arrive-btn" type="button" hidden>I arrived!</button>
+
+  <div id="done-screen" hidden>
+    <h1>You arrived!</h1>
+    <p>Enjoy your drink.</p>
+    <a id="done-home" href="#" hidden>Back to home</a>
   </div>
 
   <div id="map-panel" hidden>
@@ -65,7 +73,7 @@
     <p id="status" role="status"></p>
   </div>
 
-  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/leaflet/leaflet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

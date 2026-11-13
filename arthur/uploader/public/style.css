@@ -48,3 +48,52 @@ img {
   font-family: ui-monospace, Menlo, Consolas, monospace;
   margin: 12px 0;
 }
+
+/* ---------- Upload form ---------- */
+
+#preview-coords, .coords { overflow-wrap: anywhere; font-size: 0.95rem; }
+
+form { text-align: left; }
+
+label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+input[type="text"] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px;
+  font-size: 1.1rem;
+  border: 2px solid #b6c8dc;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+}
+
+input[type="text"]:read-only { background: #eef3f9; }
+input[type="text"]:focus { outline: none; border-color: #1a73e8; }
+
+label.check { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; }
+label.check input { width: 24px; height: 24px; }
+
+.note { margin: 6px 0 0; font-size: 0.85rem; font-weight: 400; color: #4a6075; min-height: 1.2em; }
+#form-error { margin: 8px 0; color: #b00020; min-height: 1.2em; }
+
+form button { margin-top: 8px; }
+
+.card { text-align: left; }
+.card h3 { margin: 12px 0 4px; }
+.card .meta { margin: 2px 0; }
+.card .badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 999px;
+}
+.badge.saved { background: #d7f0de; color: #1b6e36; }
+.badge.unsaved { background: #fff1cc; color: #8a5b00; }

@@ -18,7 +18,27 @@
     <section id="preview" hidden>
       <img id="preview-img" alt="Fountain preview" />
       <p id="preview-coords"></p>
-      <button id="submit-btn" type="button" disabled>Submit</button>
+
+      <form id="upload-form" novalidate>
+        <label>
+          Building
+          <input id="building" type="text" maxlength="100" autocomplete="off" />
+        </label>
+        <p id="building-note" class="note"></p>
+
+        <label>
+          Floor
+          <input id="floor" type="text" maxlength="6" autocomplete="off" autocapitalize="characters" placeholder="e.g. 2 or M2" />
+        </label>
+
+        <label class="check">
+          <input id="accessible" type="checkbox" />
+          Accessible
+        </label>
+        <p id="form-error" role="alert"></p>
+
+        <button id="submit-btn" type="submit" disabled>Submit</button>
+      </form>
     </section>
 
     <section id="results"></section>

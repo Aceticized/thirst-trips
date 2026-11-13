@@ -1,0 +1,83 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #12283d;
+}
+
+body { display: flex; flex-direction: column; }
+
+#map { flex: 1; min-height: 0; }
+
+/* ---------- Desktop header ---------- */
+
+#topbar {
+  display: none;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 20px;
+  color: #fff;
+  background: #1a73e8;
+}
+#topbar h1 { margin: 0; font-size: 1.3rem; }
+body.desktop #topbar { display: flex; }
+
+/* ---------- Mobile buttons over the map ---------- */
+
+#upload-btn, #drink-btn { position: fixed; z-index: 1100; border: none; color: #fff; cursor: pointer; }
+#upload-btn[hidden], #drink-btn[hidden], #status[hidden] { display: none; }
+
+#upload-btn {
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 12px;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  background: #2e9e4f;
+  border-radius: 50%;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+#drink-btn {
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 34px); /* clears the map attribution */
+  padding: 14px 24px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  background: #1a73e8;
+  border-radius: 999px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+#drink-btn:disabled { opacity: 0.7; }
+
+#status {
+  position: fixed;
+  z-index: 1100;
+  left: 12px;
+  right: 12px;
+  top: calc(env(safe-area-inset-top) + 76px);
+  margin: 0;
+  padding: 8px 12px;
+  color: #fff;
+  background: rgba(176, 0, 32, 0.9);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.you-dot {
+  width: 16px;
+  height: 16px;
+  background: #1a73e8;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.3), 0 0 6px rgba(0, 0, 0, 0.5);
+}

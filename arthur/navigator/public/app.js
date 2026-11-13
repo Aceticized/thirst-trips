@@ -57,6 +57,20 @@ let uprightMs = 0;
 let calibStart = 0;
 let rendering = false;
 
+let geoWatchId = null;
+let cameraStream = null;
+let calibTimer = null;
+
+const params = new URLSearchParams(location.search);
+
+// The home page can pass a destination: ?lat=..&lon=..&name=..&return=<url>
+function waypointFromUrl() {
+  const lat = parseFloat(params.get("lat"));
+  const lon = parseFloat(params.get("lon"));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  return { name: params.get("name") || "Fountain", lat, lon };
+}
+
 // ---------- Geo math ----------
 
 function distanceAndBearing(lat1, lon1, lat2, lon2) {
@@ -188,7 +202,7 @@ function startOrientation() {
 // ---------- Location ----------
 
 function startLocation() {
-  navigator.geolocation.watchPosition(
+  geoWatchId = navigator.geolocation.watchPosition(
     (pos) => {
       const fix = { lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy };
       rawFix = fix;
@@ -207,7 +221,7 @@ function startLocation() {
       refreshMap();
       if (!startLocation.declinationLoaded) {
         startLocation.declinationLoaded = true;
-        fetch(`/api/declination?lat=${fix.lat}&lon=${fix.lon}`)
+        fetch(`api/declination?lat=${fix.lat}&lon=${fix.lon}`)
           .then((r) => r.json())
           .then((d) => { if (Number.isFinite(d.declination)) declination = d.declination; })
           .catch(() => { startLocation.declinationLoaded = false; });
@@ -339,11 +353,46 @@ calibGo.addEventListener("click", () => {
   document.body.classList.add("navigating");
   arEl.hidden = false;
   mapPanel.hidden = false;
+  arriveBtn.hidden = false;
   if (!map) initMap();
   map.invalidateSize();
   refreshMap(true);
   if (!rendering) { rendering = true; render(); }
 });
+
+// ---------- Finish ----------
+
+const arriveBtn = document.getElementById("arrive-btn");
+const doneScreen = document.getElementById("done-screen");
+const doneHome = document.getElementById("done-home");
+
+// "I arrived!": shut everything down (camera, GPS, sensors, map) and show the end screen.
+function finish() {
+  phase = "done";
+
+  window.removeEventListener("deviceorientation", handleOrientation, true);
+  window.removeEventListener("deviceorientationabsolute", handleAbsolute, true);
+  if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
+  if (calibTimer !== null) clearInterval(calibTimer);
+  if (cameraStream) cameraStream.getTracks().forEach((t) => t.stop());
+  video.srcObject = null;
+  if (map) { map.remove(); map = null; }
+
+  document.body.classList.remove("navigating");
+  arEl.hidden = true;
+  mapPanel.hidden = true;
+  arriveBtn.hidden = true;
+  video.hidden = true;
+
+  const back = params.get("return");
+  if (back && new URL(back, location.href).origin === location.origin) {
+    doneHome.href = back;
+    doneHome.hidden = false;
+  }
+  doneScreen.hidden = false;
+}
+
+arriveBtn.addEventListener("click", finish);
 
 // ---------- Rendering ----------
 
@@ -353,6 +402,7 @@ function rotateAzimuth(v, deg) {
 }
 
 function render() {
+  if (phase === "done") return;
   requestAnimationFrame(render);
 
   if (!position || !axes || yawOffset === null) {
@@ -451,14 +501,15 @@ startBtn.addEventListener("click", async () => {
       if (result !== "granted") throw new Error("Motion & orientation access was denied.");
     }
 
-    const config = await (await fetch("/api/config")).json();
-    waypoint = config.waypoint;
+    const config = await (await fetch("api/config")).json();
+    waypoint = waypointFromUrl() || config.waypoint;
     wpName.textContent = waypoint.name;
 
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: "environment" } },
       audio: false,
     });
+    cameraStream = stream;
     video.srcObject = stream;
     await video.play();
 
@@ -471,7 +522,7 @@ startBtn.addEventListener("click", async () => {
     calibEl.hidden = false;
 
     let last = performance.now();
-    setInterval(() => {
+    calibTimer = setInterval(() => {
       const now = performance.now();
       calibrationTick(now - last);
       last = now;

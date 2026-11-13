@@ -91,4 +91,6 @@ async function main() {
   });
 }
 
-main();
+module.exports = { buildApp };
+
+if (require.main === module) main();
