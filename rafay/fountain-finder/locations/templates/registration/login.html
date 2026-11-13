@@ -5,6 +5,7 @@
   <main>
     <h1>Log in to Fountain Finder</h1>
     <p>Log in to see your points.</p>
+    <p><a href="{% url 'signup' %}?next={{ next|urlencode }}">Create an account</a></p>
     <form method="post">
       {% csrf_token %}
       {{ form.as_p }}

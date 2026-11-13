@@ -1,8 +1,12 @@
 
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_http_methods
+from django.views.decorators.cache import never_cache
+from django.shortcuts import get_object_or_404, redirect, render
+from .services import check_in
 from django.http import JsonResponse
-from .models import Facility, UserProfile
+from .models import CheckIn, Facility, UserProfile
+from django.utils import timezone
 from .utils import haversine
 
 
@@ -60,3 +64,45 @@ def profile(request):
     })
     response["Cache-Control"] = "no-store"
     return response
+
+
+@login_required
+@never_cache
+@require_http_methods(["GET", "POST"])
+def facility_check_in(request, token):
+    facility = get_object_or_404(Facility, nfc_id=token)
+    if request.method == "POST":
+        visit, created, user_profile = check_in(request.user, facility)
+        return redirect("check-in", token=facility.nfc_id)
+    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    visit = CheckIn.objects.filter(
+        user=request.user, facility=facility, visit_date=timezone.localdate()
+    ).first()
+    return render(request, "locations/check_in.html", {
+        "facility": facility, "visit": visit, "profile": user_profile,
+    })
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
+def signup(request):
+    from django.contrib.auth import login
+    from django.contrib.auth.forms import UserCreationForm
+    from django.db import transaction
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    destination = request.POST.get("next", request.GET.get("next", ""))
+    if not url_has_allowed_host_and_scheme(
+        destination, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        destination = ""
+    if request.user.is_authenticated:
+        return redirect(destination or "profile")
+    form = UserCreationForm(request.POST if request.method == "POST" else None)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            user = form.save()
+            UserProfile.objects.create(user=user)
+        login(request, user)
+        return redirect(destination or "profile")
+    return render(request, "registration/signup.html", {"form": form, "next": destination})

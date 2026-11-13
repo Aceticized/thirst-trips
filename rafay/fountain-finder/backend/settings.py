@@ -10,7 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,8 +31,6 @@ DEBUG = True
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "chest-guards-archives-item.trycloudflare.com",
-    "tracking-tonight-cds-bookstore.trycloudflare.com"
 ]
 
 
@@ -137,3 +137,12 @@ MAILERS = {
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "profile"
 LOGOUT_REDIRECT_URL = "login"
+
+# Set this to the HTTPS forwarding URL printed by ngrok (no path).
+NGROK_URL = os.environ.get("NGROK_URL", "").rstrip("/")
+if NGROK_URL:
+    ngrok_origin = urlsplit(NGROK_URL)
+    if ngrok_origin.scheme != "https" or not ngrok_origin.hostname or ngrok_origin.path or ngrok_origin.query or ngrok_origin.fragment or ngrok_origin.username or ngrok_origin.password:
+        raise ValueError("NGROK_URL must be an HTTPS origin, e.g. https://example.ngrok-free.app")
+    ALLOWED_HOSTS.append(ngrok_origin.hostname)
+    CSRF_TRUSTED_ORIGINS = [NGROK_URL]

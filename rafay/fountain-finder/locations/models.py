@@ -48,9 +48,13 @@ class CheckIn(models.Model):
         Facility, on_delete=models.PROTECT, related_name="check_ins"
     )
     visited_at = models.DateTimeField(default=timezone.now, editable=False)
+    visit_date = models.DateField(default=timezone.localdate, editable=False)
     points_awarded = models.PositiveIntegerField(default=10)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "facility", "visit_date"], name="one_daily_facility_checkin")
+        ]
         ordering = ["-visited_at"]
         indexes = [models.Index(fields=["user", "facility", "visited_at"])]
 

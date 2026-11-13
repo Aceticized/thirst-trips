@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.urls import reverse
 
 from .models import CheckIn, Facility, UserProfile
 
@@ -10,7 +11,15 @@ class FacilityAdmin(admin.ModelAdmin):
     )
     search_fields = ("name", "building", "nfc_id")
     list_filter = ("facility_type", "building", "accessible")
-    readonly_fields = ("nfc_id",)
+    readonly_fields = ("nfc_id", "check_in_url")
+
+    @admin.display(description="NFC check-in URL")
+    def check_in_url(self, obj):
+        if not obj.pk:
+            return "Save this facility first."
+        from django.conf import settings
+        origin = settings.NGROK_URL or "http://127.0.0.1:8000"
+        return origin + reverse("check-in", kwargs={"token": obj.nfc_id})
 
 
 @admin.register(UserProfile)
