@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fountain Finder</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <h1>Fountain Finder</h1>
+
+    <button id="upload-btn" type="button">Upload Fountain</button>
+    <input id="camera-input" type="file" accept="image/*" capture="environment" hidden />
+
+    <p id="status" role="status"></p>
+
+    <section id="preview" hidden>
+      <img id="preview-img" alt="Fountain preview" />
+      <p id="preview-coords"></p>
+      <button id="submit-btn" type="button" disabled>Submit</button>
+    </section>
+
+    <section id="results"></section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

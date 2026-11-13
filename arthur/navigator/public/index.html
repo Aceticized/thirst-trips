@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Navigator</title>
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <video id="camera" autoplay playsinline muted></video>
+
+  <div id="ar" hidden>
+    <div id="waypoint">
+      <div class="pin"></div>
+      <div class="beam"></div>
+      <div class="label">
+        <strong id="wp-name"></strong>
+        <span id="wp-distance"></span>
+      </div>
+    </div>
+    <div id="edge-arrow"></div>
+
+    <div id="hud">
+      <div id="hud-info"></div>
+      <div id="hud-calib">
+        Compass
+        <button id="calib-left" type="button">&minus;</button>
+        <span id="calib-value">0&deg;</span>
+        <button id="calib-right" type="button">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="map-panel" hidden>
+    <div id="map"></div>
+    <div id="coords">
+      <div><span class="dot you"></span><b>You</b> <span id="coords-you">waiting for GPS...</span></div>
+      <div><span class="dot wp"></span><b>Waypoint</b> <span id="coords-wp"></span></div>
+    </div>
+    <button id="recenter" type="button" hidden>Recenter</button>
+  </div>
+
+  <div id="calibration" hidden>
+    <h2>Calibrate your compass</h2>
+    <svg viewBox="0 0 200 100" class="fig8" aria-hidden="true">
+      <path id="fig8-path" d="M100,50 C130,10 190,10 190,50 C190,90 130,90 100,50 C70,10 10,10 10,50 C10,90 70,90 100,50 Z" />
+      <circle r="7" fill="#1a9bff">
+        <animateMotion dur="3s" repeatCount="indefinite">
+          <mpath href="#fig8-path" />
+        </animateMotion>
+      </circle>
+    </svg>
+    <p class="big">Hold your phone upright and wave it in a figure&#8209;8 for a few seconds.</p>
+    <div id="calib-bar"><div id="calib-fill"></div></div>
+    <p id="calib-msg"></p>
+    <p id="calib-gps"></p>
+    <button id="calib-go" type="button" disabled>Start navigating</button>
+  </div>
+
+  <div id="start-screen">
+    <h1>Navigator</h1>
+    <p>Point your phone around to find the waypoint.</p>
+    <button id="start-btn" type="button">Start AR</button>
+    <p id="status" role="status"></p>
+  </div>
+
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
