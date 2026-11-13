@@ -1,55 +1,62 @@
+
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET
 from django.http import JsonResponse
-from .models import Facility
-from .utils import calculate_distance
+from .models import Facility, UserProfile
+from .utils import haversine
+
 
 def nearby_facilities(request):
+    # Get user's coordinates
     try:
-        lat = float(request.GET["lat"])
-        lon = float(request.GET["lon"])
-    except (KeyError, ValueError):
+        user_lat = float(request.GET.get("lat"))
+        user_lon = float(request.GET.get("lon"))
+    except (TypeError, ValueError):
         return JsonResponse(
-            {"error": "Valid lat and lon required"},
+            {"error": "Valid lat and lon parameters are required"},
             status=400
         )
 
-    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
-        return JsonResponse(
-            {"error": "Coordinates out of range"},
-            status=400
-        )
-
-    facility_type = request.GET.get("type")
-    facilities = Facility.objects.all()
-
-    if facility_type:
-        if facility_type not in ("washroom", "fountain"):
-            return JsonResponse(
-                {"error": "Invalid facility type"},
-                status=400
-            )
-        facilities = facilities.filter(
-            facility_type=facility_type
-        )
+    # Retrieve all fountains
+    fountains = Facility.objects.all()
 
     results = []
 
-    for facility in facilities:
-        distance = calculate_distance(
-            lat, lon,
-            facility.latitude,
-            facility.longitude
+    for fountain in fountains:
+        # Calculate distance from user to fountain
+        distance = haversine(
+            user_lat,
+            user_lon,
+            fountain.latitude,
+            fountain.longitude
         )
 
         results.append({
-            "id": facility.id,
-            "name": facility.name,
-            "type": facility.facility_type,
-            "latitude": facility.latitude,
-            "longitude": facility.longitude,
-            "distance_m": round(distance),
-            "accessible": facility.accessible
+            "id": fountain.id,
+            "name": fountain.name,
+            "facility_type": fountain.facility_type,
+            "building": fountain.building,
+            "floor": fountain.floor,
+            "latitude": fountain.latitude,
+            "longitude": fountain.longitude,
+            "accessible": fountain.accessible,
+            "distance_m": round(distance, 1)
         })
 
+    # Sort fountains from nearest to farthest
     results.sort(key=lambda x: x["distance_m"])
 
-    return JsonResponse({"facilities": results[:10]})
+    return JsonResponse({"facilities": results})
+
+
+@login_required
+@require_GET
+def profile(request):
+    """Return only the authenticated user's points; clients cannot select a user."""
+    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    response = JsonResponse({
+        "username": request.user.get_username(),
+        "total_points": user_profile.total_points,
+    })
+    response["Cache-Control"] = "no-store"
+    return response

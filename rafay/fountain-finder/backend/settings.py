@@ -23,13 +23,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-6v%2g-(%)o16)cidv)3rg0uu*d6gv1$8_zhjj8g0l#=n4+w@-%'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     "chest-guards-archives-item.trycloudflare.com",
+    "tracking-tonight-cds-bookstore.trycloudflare.com"
 ]
 
 
@@ -132,3 +133,7 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "profile"
+LOGOUT_REDIRECT_URL = "login"
