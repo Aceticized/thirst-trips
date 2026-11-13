@@ -37,6 +37,7 @@ ALLOWED_HOSTS = [
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -50,6 +51,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -146,3 +148,17 @@ if NGROK_URL:
         raise ValueError("NGROK_URL must be an HTTPS origin, e.g. https://example.ngrok-free.app")
     ALLOWED_HOSTS.append(ngrok_origin.hostname)
     CSRF_TRUSTED_ORIGINS = [NGROK_URL]
+
+# Only the frontend origin is allowed to make credentialed API requests.
+CORS_ALLOWED_ORIGINS = ["https://thirsttrips.com"]
+CORS_ALLOW_CREDENTIALS = True
+CORS_URLS_REGEX = r"^/api/.*$"
+CSRF_TRUSTED_ORIGINS = [*globals().get("CSRF_TRUSTED_ORIGINS", []), *CORS_ALLOWED_ORIGINS]
+
+# The ngrok backend and frontend domain are different sites. HTTPS cookies
+# must opt into cross-site requests; preserve local HTTP development otherwise.
+CROSS_SITE_COOKIES = os.environ.get("CROSS_SITE_COOKIES", "1" if NGROK_URL else "0") == "1"
+SESSION_COOKIE_SAMESITE = "None" if CROSS_SITE_COOKIES else "Lax"
+CSRF_COOKIE_SAMESITE = "None" if CROSS_SITE_COOKIES else "Lax"
+SESSION_COOKIE_SECURE = CROSS_SITE_COOKIES
+CSRF_COOKIE_SECURE = CROSS_SITE_COOKIES
