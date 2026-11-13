@@ -1,0 +1,22 @@
+{
+  "name": "navigator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "tunnel": "node server.js --tunnel"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cloudflared": "^0.7.3",
+    "express": "^5.3.0",
+    "geomagnetism": "^0.2.0",
+    "leaflet": "^1.9.4",
+    "selfsigned": "^5.5.0"
+  }
+}
