@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-6v%2g-(%)o16)cidv)3rg0uu*d6gv1$8_zhjj8g0l#=n4+w@-%'
+SECRET_KEY = 'django-insecure-6v%2g-summary for chatgpt(%)o16)cidv)3rg0uu*d6gv1$8_zhjj8g0l#=n4+w@-%'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
