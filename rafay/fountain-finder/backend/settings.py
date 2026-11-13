@@ -23,9 +23,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-6v%2g-(%)o16)cidv)3rg0uu*d6gv1$8_zhjj8g0l#=n4+w@-%'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "chest-guards-archives-item.trycloudflare.com",
+]
 
 
 # Application definition
