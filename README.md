@@ -41,7 +41,7 @@ notepad arthur\.env          # paste your Cloudflare tunnel token (see "The publ
 # 4. Database tables
 .\.venv-backend\Scripts\python.exe rafay\fountain-finder\manage.py migrate
 
-# 5. An admin login for http://127.0.0.1:8000/admin/ (optional)
+# 5. An admin login for http://localhost:8000/admin/ (optional)
 .\.venv-backend\Scripts\python.exe rafay\fountain-finder\manage.py createsuperuser
 ```
 
@@ -153,7 +153,7 @@ size and the assumed field of view. `InteriorDevelopment/Python` reads these and
 |---|---|
 | `CLOUDFLARE_TUNNEL_TOKEN` | Your tunnel's token. Empty gives a temporary address. |
 | `PUBLIC_URL` | Only used for the "Live at" message. |
-| `DJANGO_API_URL` | Where Django is. Keep `http://127.0.0.1:8000/api/nearby/` when it runs on the same PC. |
+| `DJANGO_API_URL` | Where Django is. Keep `http://localhost:8000/api/nearby/` when it runs on the same PC. |
 | `PORT` | Node port (default 3000). |
 | `USE_SAMPLE_DATA` | `1` shows `data/sample-fountains.json` instead of asking Django. |
 

@@ -164,12 +164,12 @@ if ($started.Count -gt 0) {
 
 # ---------- Wait until both answer ----------
 
-$djangoOk = Wait-ForUrl "http://127.0.0.1:$djangoPort/login/" 60
-$nodeOk   = Wait-ForUrl "http://127.0.0.1:$nodePort/" 60
+$djangoOk = Wait-ForUrl "http://localhost:$djangoPort/login/" 60
+$nodeOk   = Wait-ForUrl "http://localhost:$nodePort/" 60
 
 Write-Host ""
-if ($djangoOk) { Say "Django   ready   http://127.0.0.1:$djangoPort" "Green" } else { Say "Django   did not answer in time. Check its window for errors." "Red" }
-if ($nodeOk)   { Say "Website  ready   http://127.0.0.1:$nodePort" "Green" } else { Say "Website  did not answer in time. Check its window for errors." "Red" }
+if ($djangoOk) { Say "Django   ready   http://localhost:$djangoPort" "Green" } else { Say "Django   did not answer in time. Check its window for errors." "Red" }
+if ($nodeOk)   { Say "Website  ready   http://localhost:$nodePort" "Green" } else { Say "Website  did not answer in time. Check its window for errors." "Red" }
 Write-Host ""
 Say "The public address appears in the website window ('Live at: ...') a few seconds after the tunnel connects."
 Say "To stop everything:  .\start.ps1 -Stop   (or close the two windows)"

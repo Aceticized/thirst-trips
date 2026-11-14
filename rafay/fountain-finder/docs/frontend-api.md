@@ -75,7 +75,7 @@ Django stores the data in SQLite. Frontends use these HTTP endpoints instead of 
 
 Recommended: serve the frontend and proxy `/api/` to Django on the same HTTPS domain. This avoids cross-origin cookie issues. The backend allows credentialed API requests from `https://thirsttrips-ua.ca` and trusts that origin for CSRF. Other origins, including www, are not enabled. Having a domain alone does not configure this proxy.
 
-During development, a frontend dev-server proxy can forward `/api/` to `http://127.0.0.1:8000` when running on the backend computer, or the backend's ngrok URL for a remote teammate. Preserve cookies, and configure Django's trusted origins for the frontend origin where necessary. Do not put ngrok authtokens in frontend code.
+During development, a frontend dev-server proxy can forward `/api/` to `http://localhost:8000` when running on the backend computer, or the backend's ngrok URL for a remote teammate. Preserve cookies, and configure Django's trusted origins for the frontend origin where necessary. Do not put ngrok authtokens in frontend code.
 
 Requests use session cookies and CSRF protection. First fetch a CSRF token. Send JSON and the token on POST/PATCH/DELETE. Login and registration return a new token because Django rotates it. Error responses from Django middleware (including CSRF rejection) may be HTML; inspect status before assuming a JSON response.
 

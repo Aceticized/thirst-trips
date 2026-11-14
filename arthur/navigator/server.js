@@ -186,13 +186,13 @@ async function main() {
     const { Tunnel, bin, install } = require("cloudflared");
     const fs = require("fs");
 
-    buildApp().listen(PORT, "127.0.0.1", async () => {
-      console.log(`Navigator (tunnel mode) on http://127.0.0.1:${PORT}`);
+    buildApp().listen(PORT, "localhost", async () => {
+      console.log(`Navigator (tunnel mode) on http://localhost:${PORT}`);
       if (!fs.existsSync(bin)) {
         console.log("Downloading cloudflared (one-time)...");
         await install(bin);
       }
-      const tunnel = Tunnel.quick(`http://127.0.0.1:${PORT}`);
+      const tunnel = Tunnel.quick(`http://localhost:${PORT}`);
       tunnel.once("url", (url) => console.log(`\n  Open this on your phone:  ${url}\n`));
       tunnel.on("error", (err) => console.error("Tunnel error:", err.message));
       tunnel.on("exit", (code) => {
