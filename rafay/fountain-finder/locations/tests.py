@@ -94,7 +94,7 @@ class CheckInFlowTests(TestCase):
 
     def test_confirmation_awards_points_only_once(self):
         self.client.force_login(self.user)
-        self.assertContains(self.client.get(self.url), "Confirm check-in")
+        self.assertContains(self.client.get(self.url), 'aria-label="Claim points"')
         self.assertFalse(CheckIn.objects.exists())
         self.assertRedirects(self.client.post(self.url), self.url)
         self.client.post(self.url)
@@ -302,3 +302,42 @@ class LeaderboardTests(TestCase):
         self.make_player("leader", 40)
         self.client.force_login(self.make_player("viewer", 0))
         self.assertContains(self.client.get("/leaderboard/"), "You don't have any points yet")
+
+
+class AchievementsPageAndClaimButtonTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="walker", password="Fountain!River728")
+        self.facility = Facility.objects.create(
+            name="f1", building="CAB", floor="2", latitude=53.5, longitude=-113.5,
+        )
+        self.client.force_login(self.user)
+
+    def test_requires_login(self):
+        self.client.logout()
+        self.assertRedirects(self.client.get("/achievements/"), "/login/?next=/achievements/")
+
+    def test_lists_locked_achievements_with_descriptions_and_progress(self):
+        response = self.client.get("/achievements/")
+        self.assertContains(response, "0 of 4 unlocked")
+        self.assertContains(response, "Add your first new fountain.")
+        self.assertContains(response, "Check in at 5 different water fountains.")
+        self.assertContains(response, "Locked", count=4)
+        self.assertNotContains(response, "Unlocked</span>")
+
+    def test_checking_in_unlocks_first_sip_and_lists_it_first(self):
+        self.client.post(f"/checkin/{self.facility.nfc_id}/")
+        response = self.client.get("/achievements/")
+        items = response.context["items"]
+        self.assertEqual(items[0]["code"], "first_check_in")
+        self.assertTrue(items[0]["unlocked"])
+        self.assertContains(response, "1 of 4 unlocked")
+        self.assertContains(response, "Unlocked</span>", count=1)
+
+    def test_account_page_links_to_achievements(self):
+        self.assertContains(self.client.get("/account/"), 'href="/achievements/"')
+
+    def test_check_in_page_uses_the_claim_points_picture(self):
+        response = self.client.get(f"/checkin/{self.facility.nfc_id}/")
+        self.assertContains(response, "locations/img/claim.png")
+        self.assertContains(response, 'aria-label="Claim points"')
+        self.assertNotContains(response, "Confirm check-in")

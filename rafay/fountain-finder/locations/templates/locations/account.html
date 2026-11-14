@@ -6,6 +6,7 @@
 <p class="caption">total points</p>
 <div class="stack">
   <a class="btn" href="{% url 'leaderboard' %}">Leaderboard</a>
+  <a class="btn" href="{% url 'achievements' %}">Achievements</a>
   <a class="btn secondary" href="{{ home_url }}">Back to the map</a>
   <form method="post" action="{% url 'logout' %}">
     {% csrf_token %}

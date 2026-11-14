@@ -4,7 +4,7 @@ const path = require("path");
 // Django endpoint (override with the DJANGO_API_URL environment variable).
 // It needs ?lat=&lon= and returns { facilities: [...] } sorted by distance.
 const DJANGO_API_URL =
-  process.env.DJANGO_API_URL || "https://partridge-stubble-even.ngrok-free.dev/api/nearby/";
+  process.env.DJANGO_API_URL || "http://127.0.0.1:8000/api/nearby/";
 
 // Set USE_SAMPLE_DATA=1 to use data/sample-fountains.json instead of Django.
 const USE_SAMPLE_DATA = process.env.USE_SAMPLE_DATA === "1";

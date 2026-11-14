@@ -29,26 +29,24 @@ async function sessionRequest(path, data) {
     body: JSON.stringify(data),
   });
 }
-const contributorStatus = document.getElementById("contributor-status");
-function setContributor(user) {
-  contributor = user;
-  contributorStatus.textContent = `Contributing as ${user.username}`;
-  document.querySelectorAll("#contributor-login label, #contributor-login button").forEach(el => el.hidden = true);
-  updateSubmitState();
-}
-fetchJson("/api/me/").then(setContributor).catch(() => {});
-document.getElementById("contributor-login").addEventListener("submit", async event => {
-  event.preventDefault();
+// Uploading needs an account, so the person who finds a fountain gets the credit. If nobody is
+// logged in, this goes to the normal log-in page and comes back here afterwards.
+async function requireLogin() {
   try {
-    setContributor(await sessionRequest("/api/auth/login/", {
-      username: document.getElementById("contributor-username").value,
-      password: document.getElementById("contributor-password").value,
-    }));
-    document.getElementById("contributor-password").value = "";
-    window.dispatchEvent(new Event("achievements:check"));
-  } catch (err) { contributorStatus.textContent = err.message; }
-});
-
+    const res = await fetch("/api/me/", { credentials: "same-origin" });
+    if (res.status === 401 || res.status === 403) {
+      location.href = "/login/?next=" + encodeURIComponent(location.pathname);
+      return false;
+    }
+    if (!res.ok) throw new Error(`Request failed (${res.status})`);
+    contributor = await res.json();
+    updateSubmitState();
+    return true;
+  } catch (err) {
+    statusEl.textContent = "Couldn't check your login: " + err.message;
+    return false;
+  }
+}
 let locationPromise = null;
 let current = null;
 let stream = null;
@@ -303,6 +301,10 @@ backLink.addEventListener("click", (e) => {
   setTimeout(() => { location.href = backLink.getAttribute("href"); }, 150); // let the shrink show first
 });
 
-// Straight to the camera. Asking for location now makes the permission prompt appear right away.
-getLocation().catch(() => {});
-startCamera();
+// Straight to the camera (once we know who is logged in). Asking for location now makes the
+// permission prompt appear right away.
+requireLogin().then((loggedIn) => {
+  if (!loggedIn) return;
+  getLocation().catch(() => {});
+  startCamera();
+});

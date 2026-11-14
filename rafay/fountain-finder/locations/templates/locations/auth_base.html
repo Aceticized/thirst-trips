@@ -164,6 +164,7 @@
     }
     .img-btn img { display: block; width: 100%; height: auto; pointer-events: none; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25)); }
     .img-btn.pressed { scale: 1.12; }
+    .img-btn:disabled { opacity: 0.6; cursor: default; }
 
     .alt { margin: 22px 0 0; text-align: center; color: #3d6a48; }
     .alt a { font-weight: 700; color: #1f7a3a; }
@@ -179,6 +180,20 @@
     .board .name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
     .board small { font-weight: 400; color: #4d7556; }
     .board .pts { font-weight: 800; color: #1f7a3a; font-variant-numeric: tabular-nums; }
+
+    .achievements { margin: 0 0 18px; padding: 0; list-style: none; }
+    .achievements li { margin-bottom: 10px; padding: 14px 16px; border: 2px solid transparent; border-radius: 18px; }
+    .achievements li.unlocked { background: #d9f2d2; border-color: #2e9e4f; }
+    .achievements li.locked { background: #eef1ee; color: #6a756c; }
+    .a-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .a-name { font-weight: 700; font-size: 1.05rem; }
+    .a-badge { flex: none; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; border-radius: 999px; }
+    .unlocked .a-badge { color: #fff; background: #2e9e4f; }
+    .locked .a-badge { color: #6a756c; background: #dde2dd; }
+    .a-desc { margin: 6px 0 0; font-size: 0.95rem; }
+    .a-bar { height: 10px; margin-top: 10px; overflow: hidden; background: #dde2dd; border-radius: 999px; }
+    .a-bar span { display: block; height: 100%; background: #7fc48f; border-radius: 999px; }
+    .a-progress { margin: 4px 0 0; font-size: 0.8rem; text-align: right; }
 
     .big-number { margin: 4px 0 2px; font-size: 3.4rem; font-weight: 800; line-height: 1; text-align: center; color: #1f7a3a; }
     .caption { margin: 0 0 22px; text-align: center; color: #3d6a48; }
@@ -215,7 +230,7 @@
   </script>
   {% block scripts %}{% endblock %}
   {% if user.is_authenticated %}
-  <script src="{% static 'locations/achievements/popup.js' %}" data-assets="{% static 'locations/achievements/' %}" defer></script>
+  <script src="{% static 'locations/achievements/popup.js' %}?v=2" data-assets="{% static 'locations/achievements/' %}" defer></script>
   {% endif %}
 </body>
 </html>

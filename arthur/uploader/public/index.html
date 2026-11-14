@@ -12,14 +12,6 @@
 
   <main>
     <h1>Upload Fountain</h1>
-    <form id="contributor-login">
-      <p>Sign in to receive credit for finding a fountain.</p>
-      <label>Username<input id="contributor-username" autocomplete="username" required /></label>
-      <label>Password<input id="contributor-password" type="password" autocomplete="current-password" required /></label>
-      <button type="submit">Sign in</button>
-      <p id="contributor-status" role="status"></p>
-    </form>
-
     <section id="camera" hidden>
       <video id="viewfinder" autoplay playsinline muted></video>
       <button id="shutter" type="button" aria-label="Take photo"></button>
@@ -64,6 +56,6 @@
   </main>
 
   <script src="app.js"></script>
-  <script src="/achievement-assets/popup.js" data-assets="/achievement-assets/" defer></script>
+  <script src="/achievement-assets/popup.js?v=2" data-assets="/achievement-assets/" defer></script>
 </body>
 </html>

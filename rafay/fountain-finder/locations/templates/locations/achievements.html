@@ -1,0 +1,22 @@
+{% extends "locations/auth_base.html" %}
+{% block title %}Achievements · Fountain Finder{% endblock %}
+{% block content %}
+<h1>Achievements</h1>
+<p class="sub">{{ unlocked_count }} of {{ total_count }} unlocked</p>
+<ul class="achievements">
+  {% for item in items %}
+  <li class="{% if item.unlocked %}unlocked{% else %}locked{% endif %}">
+    <div class="a-head">
+      <span class="a-name">{{ item.name }}</span>
+      <span class="a-badge">{% if item.unlocked %}Unlocked{% else %}Locked{% endif %}</span>
+    </div>
+    <p class="a-desc">{{ item.description }}</p>
+    {% if not item.unlocked %}
+    <div class="a-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ item.target }}" aria-valuenow="{{ item.progress }}"><span style="width: {{ item.percent }}%"></span></div>
+    <p class="a-progress">{{ item.progress }} / {{ item.target }}</p>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+<a class="btn secondary" href="{% url 'account' %}">Back</a>
+{% endblock %}

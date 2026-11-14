@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from .achievements import achievement_status
 from .forms import SignupForm
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.cache import never_cache
@@ -148,6 +149,21 @@ def leaderboard(request):
         }
     return render(request, "locations/leaderboard.html", {
         "rows": rows, "my_row": my_row, "my_points": my_profile.total_points, "size": LEADERBOARD_SIZE,
+    })
+
+
+@login_required(login_url="login-page")
+@never_cache
+@require_GET
+def achievements_page(request):
+    """Every achievement with its description, unlocked ones first."""
+    items = achievement_status(request.user)
+    for item in items:
+        item["percent"] = round(100 * item["progress"] / item["target"])
+    items.sort(key=lambda item: not item["unlocked"])  # stable: keeps the defined order inside each group
+    unlocked = sum(1 for item in items if item["unlocked"])
+    return render(request, "locations/achievements.html", {
+        "items": items, "unlocked_count": unlocked, "total_count": len(items),
     })
 
 

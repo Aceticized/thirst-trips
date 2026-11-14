@@ -2,7 +2,7 @@
   const assets = document.currentScript.dataset.assets;
   const style = document.createElement("style");
   style.textContent = `
-    .achievement-toast {position:fixed;z-index:10000;top:max(20px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(420px,calc(100vw - 32px));box-sizing:border-box;padding:22px 24px;color:#17391f;background:#f5fff0;border:2px solid #89bd70;border-radius:24px;box-shadow:0 12px 40px #17391f40;font:16px system-ui,sans-serif;text-align:center}
+    .achievement-toast {position:fixed;z-index:10000;top:max(20px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:min(420px,calc(100vw - 32px));box-sizing:border-box;padding:22px 24px;color:#17391f;background:#f5fff0;border:2px solid #89bd70;border-radius:24px;box-shadow:0 12px 40px #17391f40;font:16px "Playpen Sans",system-ui,sans-serif;text-align:center}
     .achievement-toast strong {display:block;font-size:24px;margin:8px 0}
     .achievement-toast p {margin:8px 0;line-height:1.5}
     .achievement-toast button {border:0;border-radius:12px;padding:8px 14px;margin:4px;background:#d8edcd;color:#17391f;cursor:pointer;font:inherit}

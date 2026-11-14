@@ -38,10 +38,10 @@ function buildApp() {
   app.use("/static/locations", express.static(path.join(__dirname, "..", "..", "rafay", "fountain-finder", "locations", "static", "locations")));
   app.use(async (req, res, next) => {
     const apiRoute = /^\/api\/(auth\/|me\/|profile\/|checkin\/|achievements\/|facilities\/discover\/)/.test(req.path);
-    const pageRoute = /^\/(account|accounts|login|signup|leaderboard|checkin)\//.test(req.path);
+    const pageRoute = /^\/(account|accounts|login|signup|leaderboard|achievements|checkin)\//.test(req.path);
     if (!apiRoute && !pageRoute) return next();
     try {
-      const base = new URL(process.env.DJANGO_API_URL || "https://data.thirsttrips-ua.ca/api/nearby/");
+      const base = new URL(process.env.DJANGO_API_URL || "http://127.0.0.1:8000/api/nearby/");
       const headers = { Accept: "application/json" };
       for (const name of ["cookie", "content-type", "x-csrftoken"]) {
         if (req.headers[name]) headers[name] = req.headers[name];

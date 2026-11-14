@@ -7,8 +7,8 @@
 {% if visit %}
 <p class="note">You have checked in here today and earned {{ visit.points_awarded }} points. Come back tomorrow to earn more.</p>
 {% else %}
-<p class="note">Confirm your visit to earn 10 points. You can earn points here once per day (UTC).</p>
-<form id="check-in-form" method="post">{% csrf_token %}<button class="btn" type="submit">Confirm check-in</button></form>
+<p class="note">Claim your visit to earn 10 points. You can earn points here once per day (UTC).</p>
+<form id="check-in-form" method="post">{% csrf_token %}<button class="img-btn" type="submit" aria-label="Claim points"><img src="{% static 'locations/img/claim.png' %}" alt="" draggable="false"></button></form>
 {% endif %}
 <p class="big-number">{{ profile.total_points }}</p>
 <p class="caption">total points</p>
@@ -16,7 +16,7 @@
 {% endblock %}
 {% block scripts %}
 <script>
-  // Plays the achievement sound when "Confirm check-in" is pressed. The check-in is sent in the
+  // Plays the achievement sound when "Claim Points" is pressed. The check-in is sent in the
   // background and the card is updated in place, so the page doesn't reload and cut the sound off.
   (function () {
     var form = document.getElementById("check-in-form");
