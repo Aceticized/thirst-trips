@@ -1,0 +1,5 @@
+﻿# The neural networks used by `build` (large downloads; a GPU makes it much faster)
+-r requirements.txt
+torch>=2.2
+transformers>=4.45
+accelerate>=0.30

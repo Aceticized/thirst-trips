@@ -1,0 +1,7 @@
+﻿# Everything except the neural networks (enough for `inspect` and `demo`)
+numpy>=1.26
+scipy>=1.11
+pillow>=10
+opencv-python-headless>=4.9
+matplotlib>=3.8
+pytest>=8

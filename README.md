@@ -12,7 +12,8 @@ It is two programs that run side by side:
 
 Other folders: `arthur/navigator` and `arthur/uploader` are the AR and upload apps that the Node server
 mounts, `emily` holds the artwork and `ryan` holds NFC notes. API notes are in
-`rafay/fountain-finder/docs`.
+`rafay/fountain-finder/docs`. `InteriorDevelopment` collects photos from the navigator (`Pictures`) and turns them
+into floor plans (`Python`, see its README).
 
 ## What you need
 
@@ -121,6 +122,29 @@ The login, sign-up, account, leaderboard, achievements and check-in pages work o
 `thirsttrips-ua.ca` and `data.thirsttrips-ua.ca`. Point NFC tags at
 `https://data.thirsttrips-ua.ca/checkin/<id>/`. The id for each fountain is shown in the admin.
 
+## Interior snapshots (for building indoor maps)
+
+While someone is navigating, the AR page can send a photo from the camera every 2 seconds. Each walk gets its own
+folder in `InteriorDevelopment/Pictures` (named by the phone's date and time, like `20261114-031542-k3x9`), and each
+photo is saved as two files:
+
+```
+InteriorDevelopment/Pictures/20261114-031542-k3x9/0007 53.1023982 -113.2034985 349.jpg
+InteriorDevelopment/Pictures/20261114-031542-k3x9/0007 53.1023982 -113.2034985 349.json
+```
+
+The file name is `<photo number> <latitude> <longitude> <compass angle>` (angle in degrees from true north, 0 to 359).
+The `.json` next to it has the rest: time, GPS accuracy, camera tilt (pitch and roll), compass corrections, picture
+size and the assumed field of view. `InteriorDevelopment/Python` reads these and builds floor plans; see its README.
+
+- **It only happens if the person agrees.** The calibration screen asks "Help map building interiors?" with
+  Yes / No buttons, and the choice is remembered on that phone. While it is on, a green "Sharing snapshots"
+  button at the top of the camera view stops it with one tap. Nothing is sent before the person says yes.
+- **Limits:** photos are scaled to at most 1280 pixels wide, a visitor can send at most 45 a minute, and saving
+  stops when the folder passes `INTERIOR_MAX_MB` (default 2000 MB).
+- **Privacy:** the photos can show people and private rooms. They are ignored by Git on purpose, but the
+  repository sits inside OneDrive, so OneDrive will sync that folder. Write a privacy notice that matches what you
+  do with the photos, and check what your school or organisation requires before collecting from the public.
 ## Settings
 
 **`arthur/.env`** (read by the Node server at start-up, see `arthur/.env.example`):

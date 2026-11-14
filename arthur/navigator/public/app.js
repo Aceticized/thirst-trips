@@ -391,6 +391,8 @@ function calibrationTick(dt) {
 
 calibGo.addEventListener("click", () => {
   phase = "navigating";
+  startSnapshots();
+  updateShareUi();
   calibEl.hidden = true;
   document.body.classList.add("navigating");
   arEl.hidden = false;
@@ -416,6 +418,8 @@ function finish() {
   window.removeEventListener("deviceorientationabsolute", handleAbsolute, true);
   if (geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
   if (calibTimer !== null) clearInterval(calibTimer);
+  stopSnapshots();
+  shareChip.hidden = true;
   if (cameraStream) cameraStream.getTracks().forEach((t) => t.stop());
   video.srcObject = null;
   if (map) { map.remove(); map = null; }
@@ -514,12 +518,115 @@ function render() {
   wpDistance.textContent = formatDistance(distance);
 
   const heading = norm360(toDeg(Math.atan2(f[0], f[1])));
+  latestHeading = heading;
+  latestPose = { pitch: toDeg(Math.asin(clamp(f[2], -1, 1))), roll: toDeg(Math.atan2(r[2], u[2])) };
   updateCone(heading);
   hudInfo.innerHTML =
     `${waypoint.name}: ${formatDistance(distance)} @ ${Math.round(bearing)}&deg;<br>` +
     `Facing: ${Math.round(heading)}&deg; &middot; GPS &plusmn;${Math.round(position.accuracy)} m`;
 }
 
+// ---------- Sharing snapshots to help map building interiors ----------
+
+// While navigating, and only if the person agreed, a photo from the camera is sent every couple of
+// seconds with where and which way it was taken. The server saves each walk in its own folder under
+// InteriorDevelopment/Pictures: "<number> <latitude> <longitude> <compass angle>.jpg" plus a .json
+// file with the details (time, tilt, GPS accuracy...). InteriorDevelopment/Python reads those.
+// 2 seconds keeps neighbouring photos overlapping at walking speed, which 3D reconstruction needs.
+const SNAPSHOT_EVERY_MS = 2000;
+const SNAPSHOT_MAX_WIDTH = 1280;
+const SHARING_KEY = "interiorSharing"; // "yes" or "no"; missing means the person hasn't chosen yet
+
+const shareYes = document.getElementById("share-yes");
+const shareNo = document.getElementById("share-no");
+const shareChip = document.getElementById("share-chip");
+const snapshotCanvas = document.createElement("canvas");
+
+let sharing = localStorage.getItem(SHARING_KEY) === "yes";
+let latestHeading = null;   // camera direction in degrees from true north, set every frame
+let latestPose = null;      // { pitch, roll } of the camera in degrees, set every frame
+let snapshotSession = null; // one id per walk, e.g. "20261114-031542-k3x9"
+let snapshotSeq = 0;        // photo number within the walk
+let snapshotTimer = null;
+let snapshotBusy = false;
+
+function updateShareUi() {
+  const choice = localStorage.getItem(SHARING_KEY);
+  shareYes.classList.toggle("on", choice === "yes");
+  shareNo.classList.toggle("on", choice === "no");
+  shareChip.hidden = !(sharing && phase === "navigating");
+}
+
+function setSharing(on) {
+  sharing = on;
+  localStorage.setItem(SHARING_KEY, on ? "yes" : "no");
+  if (!on) stopSnapshots();
+  updateShareUi();
+}
+
+shareYes.addEventListener("click", () => setSharing(true));
+shareNo.addEventListener("click", () => setSharing(false));
+shareChip.addEventListener("click", () => setSharing(false));
+
+// "20261114-031542-k3x9": the phone's date and time plus 4 random characters. It names the walk's folder.
+function makeSessionId() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  return `${stamp}-${Math.random().toString(36).slice(2, 6).padEnd(4, "0")}`;
+}
+
+async function takeSnapshot() {
+  if (!sharing || phase !== "navigating" || snapshotBusy || document.visibilityState !== "visible") return;
+  if (!position || latestHeading === null || !latestPose || !video.videoWidth) return;
+  snapshotBusy = true;
+  try {
+    // Remember where, which way and how the camera was held at the moment of the snapshot.
+    const where = { lat: position.lat, lon: position.lon, accuracy: position.accuracy };
+    const heading = latestHeading, pose = latestPose, takenAt = Date.now();
+
+    const scale = Math.min(1, SNAPSHOT_MAX_WIDTH / video.videoWidth);
+    snapshotCanvas.width = Math.round(video.videoWidth * scale);
+    snapshotCanvas.height = Math.round(video.videoHeight * scale);
+    snapshotCanvas.getContext("2d").drawImage(video, 0, 0, snapshotCanvas.width, snapshotCanvas.height);
+    const blob = await new Promise((resolve) => snapshotCanvas.toBlob(resolve, "image/jpeg", 0.8));
+    if (!blob) return;
+
+    const query = new URLSearchParams({
+      session: snapshotSession,
+      seq: String(snapshotSeq++),
+      t: String(takenAt),
+      lat: where.lat.toFixed(7),
+      lon: where.lon.toFixed(7),
+      accuracy: where.accuracy.toFixed(1),
+      heading: heading.toFixed(1),
+      pitch: pose.pitch.toFixed(1),
+      roll: pose.roll.toFixed(1),
+      declination: declination.toFixed(2),
+      offset: String(manualOffset),
+      w: String(snapshotCanvas.width),
+      h: String(snapshotCanvas.height),
+      fov: String(CAMERA_LONG_SIDE_FOV),
+    });
+    await fetch(`api/snapshot?${query}`, { method: "POST", headers: { "Content-Type": "image/jpeg" }, body: blob });
+  } catch {
+    // A missed snapshot doesn't matter; the next one is only a couple of seconds away.
+  } finally {
+    snapshotBusy = false;
+  }
+}
+function startSnapshots() {
+  if (snapshotTimer !== null || !sharing) return;
+  if (snapshotSession === null) { snapshotSession = makeSessionId(); snapshotSeq = 0; }
+  snapshotTimer = setInterval(takeSnapshot, SNAPSHOT_EVERY_MS);
+}
+
+function stopSnapshots() {
+  if (snapshotTimer !== null) clearInterval(snapshotTimer);
+  snapshotTimer = null;
+}
+
+updateShareUi();
 // ---------- Start-up ----------
 
 function updateCalibLabel() {

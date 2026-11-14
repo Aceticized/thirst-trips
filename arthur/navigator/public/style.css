@@ -152,6 +152,7 @@ html, body {
 #calibration {
   position: fixed;
   inset: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -328,3 +329,44 @@ body.navigating #ar { overflow: hidden; }
   text-decoration: none;
 }
 #done-home[hidden] { display: none; }
+
+/* ---------- Sharing snapshots to help map building interiors ---------- */
+
+#share-box {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+}
+#share-box p { margin: 0 0 10px; }
+.share-choices { display: flex; gap: 8px; }
+.share-choices button {
+  flex: 1;
+  padding: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 12px;
+}
+.share-choices button.on { background: #2e9e4f; border-color: #2e9e4f; }
+
+#share-chip {
+  position: absolute;
+  left: 12px;
+  top: calc(env(safe-area-inset-top) + 92px);
+  pointer-events: auto;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(46, 158, 79, 0.85);
+  border: none;
+  border-radius: 999px;
+}
+#share-chip[hidden] { display: none; }

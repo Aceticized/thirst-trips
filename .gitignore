@@ -1,5 +1,6 @@
 .venv/
 .venv-backend/
+.venv-models/
 node_modules/
 __pycache__/
 *.py[cod]
@@ -8,3 +9,8 @@ __pycache__/
 !.env.example
 *.local-backup.sqlite3
 .launcher.pids
+# Photos sent from the navigator (private, never commit them)
+InteriorDevelopment/Pictures/*
+!InteriorDevelopment/Pictures/.gitkeep
+# Floor plans and cached depth maps made by InteriorDevelopment/Python
+InteriorDevelopment/Python/output/
