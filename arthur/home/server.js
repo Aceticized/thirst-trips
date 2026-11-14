@@ -78,8 +78,19 @@ async function main() {
         console.log("Downloading cloudflared (one-time)...");
         await install(bin);
       }
-      const tunnel = Tunnel.quick(`http://127.0.0.1:${PORT}`);
-      tunnel.once("url", (url) => console.log(`\n  Open this on your phone:  ${url}\n`));
+      const token = process.env.CLOUDFLARE_TUNNEL_TOKEN;
+      let tunnel;
+      if (token) {
+        // Permanent tunnel: Cloudflare routes your own domain to this server.
+        tunnel = Tunnel.withToken(token);
+        tunnel.once("connected", () =>
+          console.log(`\n  Live at:  ${process.env.PUBLIC_URL || "your Cloudflare domain"}\n`)
+        );
+      } else {
+        // No token: a temporary random trycloudflare.com address.
+        tunnel = Tunnel.quick(`http://127.0.0.1:${PORT}`);
+        tunnel.once("url", (url) => console.log(`\n  Open this on your phone:  ${url}\n`));
+      }
       tunnel.on("error", (err) => console.error("Tunnel error:", err.message));
       tunnel.on("exit", (code) => {
         console.error(`Tunnel stopped (code ${code}).`);

@@ -43,6 +43,9 @@ async function listFacilities(lat, lon) {
   url.searchParams.set("lat", lat);
   url.searchParams.set("lon", lon);
   const res = await fetch(url, { headers: DJANGO_HEADERS, signal: AbortSignal.timeout(10000) });
+  if (res.headers.get("ngrok-error-code")) {
+    throw new Error("The Django server is offline (its ngrok tunnel isn't running).");
+  }
   if (!res.ok) throw new Error(`Django API responded with ${res.status}`);
   const body = await res.json();
   return Array.isArray(body) ? body : body.facilities || [];
@@ -112,6 +115,10 @@ async function sendToDjango(fountain) {
     body: JSON.stringify(fountain),
     signal: AbortSignal.timeout(15000),
   });
+
+  if (res.headers.get("ngrok-error-code")) {
+    throw new Error("The Django server is offline (its ngrok tunnel isn't running).");
+  }
 
   if (!res.ok) {
     let detail = "";

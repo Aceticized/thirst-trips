@@ -180,3 +180,6 @@ form.addEventListener("submit", async (e) => {
     submitBtn.textContent = "Submit";
   }
 });
+
+// Shown only when this page is served under the home app (e.g. /uploader/), not on its own at "/".
+if (location.pathname !== "/") document.getElementById("back-link").hidden = false;

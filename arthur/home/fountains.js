@@ -48,6 +48,9 @@ async function loadFountains(lat = DEFAULT_CENTER.lat, lon = DEFAULT_CENTER.lon)
       },
       signal: AbortSignal.timeout(10000),
     });
+    if (res.headers.get("ngrok-error-code")) {
+      throw new Error("The Django server is offline (its ngrok tunnel isn't running).");
+    }
     if (!res.ok) throw new Error(`Django API responded with ${res.status}`);
     const body = await res.json();
     rows = Array.isArray(body) ? body : body.facilities || [];
