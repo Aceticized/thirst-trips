@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from locations.forms import LoginForm
-from locations.views import account, facility_check_in, signup
+from locations.views import account, facility_check_in, leaderboard, signup
 from django.contrib import admin
 from django.contrib.auth.views import LoginView
 from django.urls import path, include, reverse_lazy
@@ -41,6 +41,7 @@ urlpatterns = [
     ),
     path("signup/", signup, {"default_destination": "account", "login_url_name": "login-page"}, name="signup-page"),
     path("account/", account, name="account"),
+    path("leaderboard/", leaderboard, name="leaderboard"),
     path("checkin/<uuid:token>/", facility_check_in, name="check-in"),
     path("admin/", admin.site.urls),
     path("accounts/", include("django.contrib.auth.urls")),

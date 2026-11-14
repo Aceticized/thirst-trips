@@ -227,3 +227,78 @@ class DirectLoginPageTests(TestCase):
 
     def test_admin_uses_playpen_sans(self):
         self.assertContains(self.client.get("/admin/login/"), "Playpen Sans")
+
+
+class CheckInPageTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username="scanner", password="Fountain!River728")
+        self.facility = Facility.objects.create(
+            name="f1", building="CAB", floor="2", latitude=53.5, longitude=-113.5,
+        )
+        self.url = f"/checkin/{self.facility.nfc_id}/"
+        self.client.force_login(self.user)
+
+    def test_view_my_points_goes_to_the_account_page_not_json(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'href="/account/"')
+        self.assertNotContains(response, "/api/profile/")
+
+    def test_confirm_button_plays_the_achievement_sound(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "locations/audio/achievement.mp3")
+        self.assertContains(response, 'id="check-in-form"')
+
+    def test_background_post_returns_the_updated_page(self):
+        response = self.client.post(self.url, follow=True)
+        self.assertContains(response, "You have checked in here today")
+        self.assertNotContains(response, 'id="check-in-form"')
+        self.assertContains(response, "10</p>")
+
+
+class LeaderboardTests(TestCase):
+    def make_player(self, name, points):
+        user = get_user_model().objects.create_user(username=name, password="Fountain!River728")
+        UserProfile.objects.create(user=user, total_points=points)
+        return user
+
+    def test_requires_login(self):
+        self.assertRedirects(self.client.get("/leaderboard/"), "/login/?next=/leaderboard/")
+
+    def test_lists_players_by_points_and_shares_ranks_for_ties(self):
+        self.make_player("bronze", 10)
+        self.make_player("gold", 50)
+        self.make_player("silver-a", 30)
+        self.make_player("silver-b", 30)
+        self.make_player("nobody", 0)
+        viewer = self.make_player("viewer", 20)
+        self.client.force_login(viewer)
+        response = self.client.get("/leaderboard/")
+        rows = response.context["rows"]
+        self.assertEqual(
+            [(r["rank"], r["username"], r["points"]) for r in rows],
+            [(1, "gold", 50), (2, "silver-a", 30), (2, "silver-b", 30), (4, "viewer", 20), (5, "bronze", 10)],
+        )
+        self.assertEqual([r["is_me"] for r in rows], [False, False, False, True, False])
+        self.assertContains(response, "<small>(you)</small>", html=True)
+        self.assertNotContains(response, "nobody")
+
+    def test_shows_your_rank_below_the_list_when_outside_the_top(self):
+        from unittest import mock
+        from . import views
+        viewer = self.make_player("viewer", 5)
+        for index in range(3):
+            self.make_player(f"leader{index}", 100 - index)
+        self.client.force_login(viewer)
+        with mock.patch.object(views, "LEADERBOARD_SIZE", 2):
+            response = self.client.get("/leaderboard/")
+        self.assertEqual([r["username"] for r in response.context["rows"]], ["leader0", "leader1"])
+        self.assertEqual(response.context["my_row"]["rank"], 4)
+
+    def test_account_page_links_to_leaderboard(self):
+        self.client.force_login(self.make_player("viewer", 0))
+        self.assertContains(self.client.get("/account/"), 'href="/leaderboard/"')
+
+    def test_player_without_points_gets_a_hint(self):
+        self.make_player("leader", 40)
+        self.client.force_login(self.make_player("viewer", 0))
+        self.assertContains(self.client.get("/leaderboard/"), "You don't have any points yet")

@@ -30,6 +30,13 @@ const waypointIcon = L.icon({
   popupAnchor: [2, -60],
 });
 
+// Your own location: the raccoon, whose red arrow tip is the exact spot.
+const youIcon = L.icon({
+  iconUrl: "img/you.png?v=1",
+  iconSize: [56, 60],
+  iconAnchor: [29, 59],
+});
+
 // The marker of the selected fountain is drawn a bit bigger.
 const selectedIcon = L.icon({
   iconUrl: "img/waypoint.png?v=1",
@@ -142,7 +149,9 @@ loadFountains();
 if (mobile) {
   const drinkBtn = document.getElementById("drink-btn");
   const uploadBtn = document.getElementById("upload-btn");
+  const trophyBtn = document.getElementById("trophy-btn");
   uploadBtn.hidden = false;
+  trophyBtn.hidden = false;
   drinkBtn.hidden = false; // it waits below the screen until a fountain is selected
 
   const ROUTE_DRAW_MS = 700;
@@ -237,7 +246,7 @@ if (mobile) {
         gpsFailed = false;
         if (!youMarker) {
           youMarker = L.marker(you, {
-            icon: L.divIcon({ className: "", html: '<div class="you-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+            icon: youIcon,
             interactive: false,
             zIndexOffset: 1000,
           }).addTo(map);
@@ -260,6 +269,11 @@ if (mobile) {
 
   makePressable(uploadBtn, () => {
     location.href = "uploader/";
+  });
+
+  // The account page lives on the Django site. It shows the log-in page first if nobody is logged in.
+  makePressable(trophyBtn, () => {
+    location.href = trophyBtn.href;
   });
 
   makePressable(drinkBtn, () => {

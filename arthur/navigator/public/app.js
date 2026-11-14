@@ -205,7 +205,6 @@ function startLocation() {
   geoWatchId = navigator.geolocation.watchPosition(
     (pos) => {
       const fix = { lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy };
-      rawFix = fix;
       if (!position) {
         position = fix;
       } else {
@@ -234,11 +233,6 @@ function startLocation() {
 
 // ---------- Map ----------
 
-const COORD_DECIMALS = 7;
-const fmtCoords = (lat, lon) => `${lat.toFixed(COORD_DECIMALS)}, ${lon.toFixed(COORD_DECIMALS)}`;
-
-const coordsYou = document.getElementById("coords-you");
-const coordsWp = document.getElementById("coords-wp");
 const mapPanel = document.getElementById("map-panel");
 const recenterBtn = document.getElementById("recenter");
 
@@ -247,19 +241,36 @@ let userMarker = null;
 let wpMarker = null;
 let routeLine = null;
 let following = true;
-let rawFix = null;       // latest unsmoothed GPS fix, shown in the label
 let lastConeUpdate = 0;
 
-// OpenStreetMap-based map without any labels (no names, numbers or icons), with the
-// building outlines drawn clearly. Falls back to the regular OSM tiles if it can't load.
+// The picture used for the waypoint on the map. The drip at the bottom is the exact spot.
+const waypointIcon = L.icon({
+  iconUrl: "img/waypoint.png?v=1",
+  iconSize: [38, 65],
+  iconAnchor: [17, 65],
+});
+
+// Green-tinted colours for the map layers (everything else keeps the style's own colours).
+const GREEN_TINT = {
+  background: { "background-color": "#e2eed9" },
+  park: { "fill-color": "#c9e3bb" },
+  landcover_wood: { "fill-color": "#bcdcae" },
+  landuse_residential: { "fill-color": "#dbead2" },
+  water: { "fill-color": "#b7dcd6" },
+  building: { "fill-color": "#b3d3a9" },
+};
+
+// Same map as the home page: OpenStreetMap-based, no labels, tinted green, with the building
+// outlines drawn clearly. Falls back to a label-free raster map if it can't load.
 async function addBasemap(targetMap) {
   let layer;
   try {
     const res = await fetch("https://tiles.openfreemap.org/styles/positron");
     const style = await res.json();
     style.layers = style.layers.filter((l) => l.type !== "symbol");
-    const building = style.layers.find((l) => l.id === "building");
-    if (building) building.paint["fill-color"] = "#dfe4ea";
+    for (const l of style.layers) {
+      if (GREEN_TINT[l.id]) l.paint = { ...l.paint, ...GREEN_TINT[l.id] };
+    }
     style.layers.push({
       id: "building-outline",
       type: "line",
@@ -267,45 +278,38 @@ async function addBasemap(targetMap) {
       "source-layer": "building",
       minzoom: 13,
       paint: {
-        "line-color": "#6b7684",
+        "line-color": "#5b8a62",
         "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 19, 1.6],
       },
     });
-    layer = L.maplibreGL({
-      style,
-      attribution:
-        '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a> ' +
-        'Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    });
+    layer = L.maplibreGL({ style });
   } catch {
-    layer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    layer = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      subdomains: "abcd",
+      className: "green-tiles",
     });
   }
   if (map === targetMap) layer.addTo(targetMap); // skip if the map was closed meanwhile
 }
 
 function initMap() {
-  map = L.map("map", { zoomControl: false, zoomSnap: 0.5 }).setView([waypoint.lat, waypoint.lon], 17);
+  // No attribution control: the corner credits are hidden on purpose.
+  map = L.map("map", { zoomControl: false, attributionControl: false, zoomSnap: 0.5 }).setView([waypoint.lat, waypoint.lon], 17);
   addBasemap(map);
 
-  wpMarker = L.marker([waypoint.lat, waypoint.lon], {
-    icon: L.divIcon({ className: "wp-marker", html: '<div class="core"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
-  }).addTo(map);
+  wpMarker = L.marker([waypoint.lat, waypoint.lon], { icon: waypointIcon, interactive: false }).addTo(map);
 
   userMarker = L.marker([waypoint.lat, waypoint.lon], {
     icon: L.divIcon({
       className: "you-marker",
-      html: '<div class="cone"></div><div class="core"></div>',
+      html: '<div class="cone"></div><img class="core" src="img/you.png?v=1" alt="" draggable="false">',
       iconSize: [0, 0],
     }),
     opacity: 0,
   }).addTo(map);
 
-  routeLine = L.polyline([], { color: "#1a73e8", weight: 4, dashArray: "8 8" }).addTo(map);
-
-  coordsWp.textContent = fmtCoords(waypoint.lat, waypoint.lon);
+  routeLine = L.polyline([], { color: "#168a3c", weight: 4, dashArray: "8 8" }).addTo(map);
 
   // Stop auto-following as soon as the user moves the map themselves.
   map.getContainer().addEventListener("touchstart", () => {
@@ -328,9 +332,14 @@ function refreshMap(forceFit) {
   const here = [position.lat, position.lon];
   userMarker.setLatLng(here).setOpacity(1);
   routeLine.setLatLngs([here, [waypoint.lat, waypoint.lon]]);
-  if (rawFix) coordsYou.textContent = fmtCoords(rawFix.lat, rawFix.lon);
   if (following || forceFit) {
-    map.fitBounds([here, [waypoint.lat, waypoint.lon]], { padding: [60, 60], maxZoom: 19, animate: false });
+    // The waypoint picture stands about 65px above its spot, so leave extra room at the top.
+    map.fitBounds([here, [waypoint.lat, waypoint.lon]], {
+      paddingTopLeft: [40, 80],
+      paddingBottomRight: [40, 30],
+      maxZoom: 19,
+      animate: false,
+    });
   }
 }
 
@@ -527,7 +536,12 @@ document.getElementById("calib-left").addEventListener("click", () => nudge(-1))
 document.getElementById("calib-right").addEventListener("click", () => nudge(1));
 updateCalibLabel();
 
-startBtn.addEventListener("click", async () => {
+class NeedsTapError extends Error {}
+
+// Starts everything: motion sensors, camera, GPS and the calibration screen. It runs by itself
+// when the page opens. fromTap is true when the user pressed the start button, which is
+// the only time an iPhone will agree to share its motion sensors.
+async function begin(fromTap) {
   statusEl.textContent = "";
   startBtn.disabled = true;
 
@@ -537,11 +551,20 @@ startBtn.addEventListener("click", async () => {
     }
     if (!navigator.geolocation) throw new Error("Geolocation is not supported on this device.");
 
-    // iOS requires the motion permission request to come straight from the tap.
     if (typeof DeviceOrientationEvent !== "undefined" &&
         typeof DeviceOrientationEvent.requestPermission === "function") {
-      const result = await DeviceOrientationEvent.requestPermission();
-      if (result !== "granted") throw new Error("Motion & orientation access was denied.");
+      let result;
+      try {
+        result = await DeviceOrientationEvent.requestPermission();
+      } catch (err) {
+        // iOS refuses to ask unless the request comes straight from a tap.
+        if (!fromTap) throw new NeedsTapError("Tap the button to allow the motion sensors.");
+        throw err;
+      }
+      if (result !== "granted") {
+        if (!fromTap) throw new NeedsTapError("Tap the button to allow the motion sensors.");
+        throw new Error("Motion & orientation access was denied.");
+      }
     }
 
     const config = await (await fetch("api/config")).json();
@@ -571,7 +594,11 @@ startBtn.addEventListener("click", async () => {
       last = now;
     }, 100);
   } catch (err) {
+    startScreen.hidden = false;
     statusEl.textContent = err.message || String(err);
     startBtn.disabled = false;
   }
-});
+}
+
+startBtn.addEventListener("click", () => begin(true));
+begin(false);

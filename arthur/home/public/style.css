@@ -50,8 +50,8 @@ body.desktop #topbar { display: flex; }
 
 /* ---------- Mobile buttons over the map ---------- */
 
-#upload-btn, #drink-btn { border: none; color: #fff; cursor: pointer; }
-#upload-btn[hidden], #drink-btn[hidden], #status[hidden] { display: none; }
+#upload-btn, #drink-btn, #trophy-btn { border: none; color: #fff; cursor: pointer; }
+#upload-btn[hidden], #drink-btn[hidden], #trophy-btn[hidden], #status[hidden] { display: none; }
 
 /* Dotted line from you to the selected fountain; the dots slide toward the fountain. */
 .route-line { animation: route-flow 0.9s linear infinite; }
@@ -87,7 +87,7 @@ body.mobile #bottom-fade { display: block; }
 #bottom-bar > * { pointer-events: auto; }
 
 /* Picture buttons: they grow while held and shrink on release. */
-#upload-btn, #drink-btn {
+#upload-btn, #drink-btn, #trophy-btn {
   padding: 0;
   background: none;
   scale: 1;
@@ -98,14 +98,21 @@ body.mobile #bottom-fade { display: block; }
   user-select: none;
   touch-action: manipulation;
 }
-#upload-btn img, #drink-btn img {
+#upload-btn img, #drink-btn img, #trophy-btn img {
   display: block;
   width: 100%;
   height: auto;
   pointer-events: none;
   filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.4));
 }
-#upload-btn.pressed, #drink-btn.pressed { scale: 1.15; }
+#upload-btn.pressed, #drink-btn.pressed, #trophy-btn.pressed { scale: 1.15; }
+
+#trophy-btn {
+  grid-column: 3;
+  justify-self: start;
+  margin-left: 10px;
+  width: 72px;
+}
 
 #upload-btn {
   justify-self: end;
@@ -141,12 +148,3 @@ body.mobile #bottom-fade { display: block; }
   text-align: center;
 }
 #status.info { background: rgba(26, 115, 232, 0.92); }
-
-.you-dot {
-  width: 16px;
-  height: 16px;
-  background: #1a73e8;
-  border: 3px solid #fff;
-  border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.3), 0 0 6px rgba(0, 0, 0, 0.5);
-}

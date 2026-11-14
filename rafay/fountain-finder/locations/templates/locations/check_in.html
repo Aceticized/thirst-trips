@@ -1,4 +1,5 @@
 {% extends "locations/auth_base.html" %}
+{% load static %}
 {% block title %}Check In · Fountain Finder{% endblock %}
 {% block content %}
 <h1>{{ facility.name }}</h1>
@@ -7,9 +8,43 @@
 <p class="note">You have checked in here today and earned {{ visit.points_awarded }} points. Come back tomorrow to earn more.</p>
 {% else %}
 <p class="note">Confirm your visit to earn 10 points. You can earn points here once per day (UTC).</p>
-<form method="post">{% csrf_token %}<button class="btn" type="submit">Confirm check-in</button></form>
+<form id="check-in-form" method="post">{% csrf_token %}<button class="btn" type="submit">Confirm check-in</button></form>
 {% endif %}
 <p class="big-number">{{ profile.total_points }}</p>
 <p class="caption">total points</p>
-<a class="btn secondary" href="{% url 'profile' %}">View my points</a>
+<a class="btn secondary" href="{% url 'account' %}">View my points</a>
+{% endblock %}
+{% block scripts %}
+<script>
+  // Plays the achievement sound when "Confirm check-in" is pressed. The check-in is sent in the
+  // background and the card is updated in place, so the page doesn't reload and cut the sound off.
+  (function () {
+    var form = document.getElementById("check-in-form");
+    if (!form) return;
+    var sound = new Audio("{% static 'locations/audio/achievement.mp3' %}");
+    sound.preload = "auto";
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      form.querySelector("button").disabled = true;
+
+      var started = sound.play();
+      if (started && started.catch) started.catch(function () {});
+
+      fetch(form.action || location.href, { method: "POST", body: new FormData(form), credentials: "same-origin" })
+        .then(function (response) {
+          if (!response.ok) throw new Error("check-in failed");
+          return response.text();
+        })
+        .then(function (html) {
+          var fresh = new DOMParser().parseFromString(html, "text/html").querySelector(".card");
+          if (!fresh) throw new Error("unexpected page");
+          document.querySelector(".card").innerHTML = fresh.innerHTML;
+        })
+        .catch(function () {
+          form.submit(); // plain form post as a fallback (the sound may stop)
+        });
+    });
+  })();
+</script>
 {% endblock %}

@@ -1,0 +1,29 @@
+{% extends "locations/auth_base.html" %}
+{% block title %}Leaderboard · Fountain Finder{% endblock %}
+{% block content %}
+<h1>Leaderboard</h1>
+{% if rows %}
+<p class="sub">Top {{ size }} players in the world</p>
+<ol class="board">
+  {% for row in rows %}
+  <li{% if row.is_me %} class="me"{% endif %}>
+    <span class="rank{% if row.rank <= 3 %} r{{ row.rank }}{% endif %}">{{ row.rank }}</span>
+    <span class="name">{{ row.username }}{% if row.is_me %} <small>(you)</small>{% endif %}</span>
+    <span class="pts">{{ row.points }}</span>
+  </li>
+  {% endfor %}
+  {% if my_row %}
+  <li class="gap" aria-hidden="true">&middot;&middot;&middot;</li>
+  <li class="me">
+    <span class="rank">{{ my_row.rank }}</span>
+    <span class="name">{{ my_row.username }} <small>(you)</small></span>
+    <span class="pts">{{ my_row.points }}</span>
+  </li>
+  {% endif %}
+</ol>
+{% else %}
+<p class="note">Nobody has any points yet. Scan a fountain's NFC tag and check in to be the first!</p>
+{% endif %}
+{% if rows and not my_points %}<p class="note">You don't have any points yet. Check in at a fountain to join the board.</p>{% endif %}
+<a class="btn secondary" href="{% url 'account' %}">Back</a>
+{% endblock %}

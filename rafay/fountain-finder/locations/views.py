@@ -111,6 +111,46 @@ def signup(request, default_destination="profile", login_url_name="login"):
     })
 
 
+LEADERBOARD_SIZE = 100
+
+
+@login_required(login_url="login-page")
+@never_cache
+@require_GET
+def leaderboard(request):
+    """The players with the most points. Players with equal points share a rank."""
+    top_profiles = (
+        UserProfile.objects.filter(total_points__gt=0)
+        .select_related("user")
+        .order_by("-total_points", "user__username")[:LEADERBOARD_SIZE]
+    )
+    rows = []
+    rank = 0
+    previous_points = None
+    for position, user_profile in enumerate(top_profiles, start=1):
+        if user_profile.total_points != previous_points:
+            rank, previous_points = position, user_profile.total_points
+        rows.append({
+            "rank": rank,
+            "username": user_profile.user.get_username(),
+            "points": user_profile.total_points,
+            "is_me": user_profile.user_id == request.user.id,
+        })
+
+    my_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    my_row = None
+    if my_profile.total_points > 0 and not any(row["is_me"] for row in rows):
+        my_row = {
+            "rank": UserProfile.objects.filter(total_points__gt=my_profile.total_points).count() + 1,
+            "username": request.user.get_username(),
+            "points": my_profile.total_points,
+            "is_me": True,
+        }
+    return render(request, "locations/leaderboard.html", {
+        "rows": rows, "my_row": my_row, "my_points": my_profile.total_points, "size": LEADERBOARD_SIZE,
+    })
+
+
 @login_required(login_url="login-page")
 @never_cache
 @require_GET

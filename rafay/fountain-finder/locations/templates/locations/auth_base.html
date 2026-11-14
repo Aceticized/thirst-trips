@@ -168,6 +168,18 @@
     .alt { margin: 22px 0 0; text-align: center; color: #3d6a48; }
     .alt a { font-weight: 700; color: #1f7a3a; }
 
+    .board { margin: 0 0 18px; padding: 0; list-style: none; }
+    .board li { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding: 10px 12px; background: #f0f9ed; border: 2px solid transparent; border-radius: 16px; }
+    .board li.me { background: #d9f2d2; border-color: #2e9e4f; }
+    .board li.gap { justify-content: center; padding: 0; margin-bottom: 8px; background: none; color: #4d7556; letter-spacing: 0.3em; }
+    .rank { flex: 0 0 40px; height: 40px; display: grid; place-items: center; font-weight: 800; color: #2e7d46; background: #fff; border-radius: 50%; }
+    .rank.r1 { background: #ffd54a; color: #5b4400; }
+    .rank.r2 { background: #dfe3e8; color: #3b4450; }
+    .rank.r3 { background: #e8aa78; color: #5a2f10; }
+    .board .name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+    .board small { font-weight: 400; color: #4d7556; }
+    .board .pts { font-weight: 800; color: #1f7a3a; font-variant-numeric: tabular-nums; }
+
     .big-number { margin: 4px 0 2px; font-size: 3.4rem; font-weight: 800; line-height: 1; text-align: center; color: #1f7a3a; }
     .caption { margin: 0 0 22px; text-align: center; color: #3d6a48; }
     .stack > * + * { margin-top: 12px; }
@@ -201,5 +213,6 @@
       });
     });
   </script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

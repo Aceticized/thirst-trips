@@ -13,8 +13,7 @@
 
   <div id="ar" hidden>
     <div id="waypoint">
-      <div class="pin"></div>
-      <div class="beam"></div>
+      <img class="pin" src="img/waypoint.png" alt="" draggable="false" />
       <div class="label">
         <strong id="wp-name"></strong>
         <span id="wp-distance"></span>
@@ -45,10 +44,6 @@
 
   <div id="map-panel" hidden>
     <div id="map"></div>
-    <div id="coords">
-      <div><span class="dot you"></span><b>You</b> <span id="coords-you">waiting for GPS...</span></div>
-      <div><span class="dot wp"></span><b>Waypoint</b> <span id="coords-wp"></span></div>
-    </div>
     <button id="recenter" type="button" hidden>Recenter</button>
   </div>
 
@@ -56,7 +51,7 @@
     <h2>Calibrate your compass</h2>
     <svg viewBox="0 0 200 100" class="fig8" aria-hidden="true">
       <path id="fig8-path" d="M100,50 C130,10 190,10 190,50 C190,90 130,90 100,50 C70,10 10,10 10,50 C10,90 70,90 100,50 Z" />
-      <circle r="7" fill="#1a9bff">
+      <circle r="7" fill="#4ccf6e">
         <animateMotion dur="3s" repeatCount="indefinite">
           <mpath href="#fig8-path" />
         </animateMotion>
@@ -69,7 +64,9 @@
     <button id="calib-go" type="button" disabled>Start navigating</button>
   </div>
 
-  <div id="start-screen">
+  <!-- Normally skipped: the navigator starts by itself. It only appears if the phone needs a tap
+       (for example iPhone motion-sensor permission) or if something went wrong. -->
+  <div id="start-screen" hidden>
     <h1>Navigator</h1>
     <p>Point your phone around to find the waypoint.</p>
     <button id="start-btn" type="button">Start AR</button>
