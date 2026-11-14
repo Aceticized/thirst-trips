@@ -1,4 +1,4 @@
-# Fountain Finder (Thirst Trips)
+# Thirst Trips
 
 A phone-friendly app for finding water fountains, walking to them with an AR view, adding new
 ones, and earning points by scanning NFC tags.
