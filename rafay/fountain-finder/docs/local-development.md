@@ -26,7 +26,7 @@ Start the frontend first in its own terminal. Override the obsolete default ngro
 address so its server requests go to local Django:
 
 ```powershell
-$env:DJANGO_API_URL = "http://127.0.0.1:8000/api/nearby/"
+$env:DJANGO_API_URL = "http://localhost:8000/api/nearby/"
 # Optional: set this to the same private secret as Django's UPLOAD_TOKEN.
 # $env:DJANGO_UPLOAD_TOKEN = "your-private-secret"
 Set-Location arthur/home

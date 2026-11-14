@@ -70,7 +70,7 @@ async function main() {
   // Tunnel mode: a tunnel service (e.g. cloudflared) provides the HTTPS, so
   // serve plain HTTP on localhost only.
   if (process.argv.includes("--tunnel")) {
-    buildApp().listen(PORT, "127.0.0.1", async () => {
+    buildApp().listen(PORT, "localhost", async () => {
       console.log(`Fountain Finder (tunnel mode) on http://localhost:${PORT}`);
       const localtunnel = require("localtunnel");
       const tunnel = await localtunnel({ port: Number(PORT) });

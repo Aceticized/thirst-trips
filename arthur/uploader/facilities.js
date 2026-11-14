@@ -9,7 +9,7 @@ for (const dir of [__dirname, require("path").join(__dirname, "..")]) {
 
 // Same read endpoint the home app uses (override with DJANGO_API_URL).
 const DJANGO_API_URL =
-  process.env.DJANGO_API_URL || "http://127.0.0.1:8000/api/nearby/";
+  process.env.DJANGO_API_URL || "http://localhost:8000/api/nearby/";
 
 // Where new fountains are POSTed as JSON (override with DJANGO_UPLOAD_URL). This is the
 // endpoint from django-patch/upload.py, which assigns the id itself.

@@ -41,7 +41,7 @@ function buildApp() {
     const pageRoute = /^\/(account|accounts|login|signup|leaderboard|achievements|checkin)\//.test(req.path);
     if (!apiRoute && !pageRoute) return next();
     try {
-      const base = new URL(process.env.DJANGO_API_URL || "http://127.0.0.1:8000/api/nearby/");
+      const base = new URL(process.env.DJANGO_API_URL || "http://localhost:8000/api/nearby/");
       const headers = { Accept: "application/json" };
       for (const name of ["cookie", "content-type", "x-csrftoken"]) {
         if (req.headers[name]) headers[name] = req.headers[name];
@@ -122,8 +122,8 @@ async function main() {
     const { Tunnel, bin, install } = require("cloudflared");
     const fs = require("fs");
 
-    buildApp().listen(PORT, "127.0.0.1", async () => {
-      console.log(`Home (tunnel mode) on http://127.0.0.1:${PORT}`);
+    buildApp().listen(PORT, "localhost", async () => {
+      console.log(`Home (tunnel mode) on http://localhost:${PORT}`);
       if (!fs.existsSync(bin)) {
         console.log("Downloading cloudflared (one-time)...");
         await install(bin);
@@ -138,7 +138,7 @@ async function main() {
         );
       } else {
         // No token: a temporary random trycloudflare.com address.
-        tunnel = Tunnel.quick(`http://127.0.0.1:${PORT}`);
+        tunnel = Tunnel.quick(`http://localhost:${PORT}`);
         tunnel.once("url", (url) => console.log(`\n  Open this on your phone:  ${url}\n`));
       }
       tunnel.on("error", (err) => console.error("Tunnel error:", err.message));
