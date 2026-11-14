@@ -41,15 +41,21 @@ async function loadFountains(lat = DEFAULT_CENTER.lat, lon = DEFAULT_CENTER.lon)
     const url = new URL(DJANGO_API_URL);
     url.searchParams.set("lat", lat);
     url.searchParams.set("lon", lon);
-    const res = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-        "ngrok-skip-browser-warning": "1", // skips ngrok's browser interstitial page
-      },
-      signal: AbortSignal.timeout(10000),
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "ngrok-skip-browser-warning": "1", // skips ngrok's browser interstitial page
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+    } catch (err) {
+      const reason = err.cause?.code || err.cause?.message || err.message;
+      throw new Error(`Could not reach Django at ${url.origin} (${reason}).`);
+    }
     if (res.headers.get("ngrok-error-code")) {
-      throw new Error("The Django server is offline (its ngrok tunnel isn't running).");
+      throw new Error(`The ngrok tunnel for ${url.origin} is not running.`);
     }
     if (!res.ok) throw new Error(`Django API responded with ${res.status}`);
     const body = await res.json();

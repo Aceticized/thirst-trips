@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Navigator</title>
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -32,7 +33,9 @@
     </div>
   </div>
 
-  <button id="arrive-btn" type="button" hidden>I arrived!</button>
+  <button id="arrive-btn" type="button" aria-label="I arrived!" hidden>
+    <img src="img/arrived.png" alt="" draggable="false" />
+  </button>
 
   <div id="done-screen" hidden>
     <h1>You arrived!</h1>
@@ -74,6 +77,8 @@
   </div>
 
   <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/maplibre/maplibre-gl.js"></script>
+  <script src="vendor/maplibre-leaflet/leaflet-maplibre-gl.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

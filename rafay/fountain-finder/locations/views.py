@@ -1,5 +1,7 @@
-
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+from .forms import SignupForm
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.cache import never_cache
 from django.shortcuts import get_object_or_404, redirect, render
@@ -85,9 +87,8 @@ def facility_check_in(request, token):
 
 @never_cache
 @require_http_methods(["GET", "POST"])
-def signup(request):
+def signup(request, default_destination="profile", login_url_name="login"):
     from django.contrib.auth import login
-    from django.contrib.auth.forms import UserCreationForm
     from django.db import transaction
     from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -97,12 +98,25 @@ def signup(request):
     ):
         destination = ""
     if request.user.is_authenticated:
-        return redirect(destination or "profile")
-    form = UserCreationForm(request.POST if request.method == "POST" else None)
+        return redirect(destination or default_destination)
+    form = SignupForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
             user = form.save()
             UserProfile.objects.create(user=user)
         login(request, user)
-        return redirect(destination or "profile")
-    return render(request, "registration/signup.html", {"form": form, "next": destination})
+        return redirect(destination or default_destination)
+    return render(request, "registration/signup.html", {
+        "form": form, "next": destination, "login_url": reverse(login_url_name),
+    })
+
+
+@login_required(login_url="login-page")
+@never_cache
+@require_GET
+def account(request):
+    """Landing page after logging in without an NFC tag (the /login/ page)."""
+    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    return render(request, "locations/account.html", {
+        "profile": user_profile, "home_url": settings.HOME_URL,
+    })

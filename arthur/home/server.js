@@ -11,6 +11,7 @@ const os = require("os");
 const path = require("path");
 const selfsigned = require("selfsigned");
 const { loadFountains, findNearest, sourceDescription } = require("./fountains");
+const { versionedIndex } = require("./versioned-index");
 
 // The other two projects stay independent folders; the home server just mounts them.
 const navigator = require("../navigator/server.js");
@@ -57,9 +58,12 @@ function buildApp() {
     }
   });
 
-  app.use("/navigator", navigator.buildApp());
-  app.use("/uploader", uploader.buildApp());
+  app.use("/navigator", versionedIndex(path.join(__dirname, "..", "navigator", "public")), navigator.buildApp());
+  app.use("/uploader", versionedIndex(path.join(__dirname, "..", "uploader", "public")), uploader.buildApp());
   app.use("/vendor/leaflet", express.static(path.join(__dirname, "node_modules", "leaflet", "dist")));
+  app.use("/vendor/maplibre", express.static(path.join(__dirname, "node_modules", "maplibre-gl", "dist")));
+  app.use("/vendor/maplibre-leaflet", express.static(path.join(__dirname, "node_modules", "@maplibre", "maplibre-gl-leaflet")));
+  app.use(versionedIndex(path.join(__dirname, "public")));
   app.use(express.static(path.join(__dirname, "public")));
   return app;
 }

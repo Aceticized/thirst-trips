@@ -250,12 +250,45 @@ let following = true;
 let rawFix = null;       // latest unsmoothed GPS fix, shown in the label
 let lastConeUpdate = 0;
 
+// OpenStreetMap-based map without any labels (no names, numbers or icons), with the
+// building outlines drawn clearly. Falls back to the regular OSM tiles if it can't load.
+async function addBasemap(targetMap) {
+  let layer;
+  try {
+    const res = await fetch("https://tiles.openfreemap.org/styles/positron");
+    const style = await res.json();
+    style.layers = style.layers.filter((l) => l.type !== "symbol");
+    const building = style.layers.find((l) => l.id === "building");
+    if (building) building.paint["fill-color"] = "#dfe4ea";
+    style.layers.push({
+      id: "building-outline",
+      type: "line",
+      source: "openmaptiles",
+      "source-layer": "building",
+      minzoom: 13,
+      paint: {
+        "line-color": "#6b7684",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 19, 1.6],
+      },
+    });
+    layer = L.maplibreGL({
+      style,
+      attribution:
+        '<a href="https://openfreemap.org">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a> ' +
+        'Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    });
+  } catch {
+    layer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    });
+  }
+  if (map === targetMap) layer.addTo(targetMap); // skip if the map was closed meanwhile
+}
+
 function initMap() {
   map = L.map("map", { zoomControl: false, zoomSnap: 0.5 }).setView([waypoint.lat, waypoint.lon], 17);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(map);
+  addBasemap(map);
 
   wpMarker = L.marker([waypoint.lat, waypoint.lon], {
     icon: L.divIcon({ className: "wp-marker", html: '<div class="core"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }),
@@ -392,7 +425,17 @@ function finish() {
   doneScreen.hidden = false;
 }
 
-arriveBtn.addEventListener("click", finish);
+// Grows while held, shrinks on release, and only then finishes.
+const releaseArrive = () => arriveBtn.classList.remove("pressed");
+arriveBtn.addEventListener("pointerdown", () => arriveBtn.classList.add("pressed"));
+for (const type of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) {
+  arriveBtn.addEventListener(type, releaseArrive);
+}
+arriveBtn.addEventListener("contextmenu", (e) => e.preventDefault());
+arriveBtn.addEventListener("click", () => {
+  releaseArrive();
+  setTimeout(finish, 150); // let the shrink animation show first
+});
 
 // ---------- Rendering ----------
 

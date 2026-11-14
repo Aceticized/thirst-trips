@@ -182,3 +182,48 @@ class SignupTests(TestCase):
         response = client.post("/accounts/signup/", {"username": "bad-request"})
         self.assertEqual(response.status_code, 403)
         self.assertFalse(get_user_model().objects.exists())
+
+
+class DirectLoginPageTests(TestCase):
+    """The /login/ and /signup/ pages work without an NFC tag."""
+
+    def test_login_page_is_simple_and_styled(self):
+        response = self.client.get("/login/")
+        self.assertContains(response, "<h1>Log In</h1>", html=True)
+        self.assertNotContains(response, "Log in to")
+        self.assertContains(response, "Playpen Sans")
+        self.assertContains(response, 'href="/signup/"')
+
+    def test_nfc_login_page_links_to_its_own_signup(self):
+        response = self.client.get("/accounts/login/?next=/checkin/abc/")
+        self.assertContains(response, "<h1>Log In</h1>", html=True)
+        self.assertContains(response, 'href="/accounts/signup/?next=/checkin/abc/"')
+
+    def test_password_fields_get_a_show_button(self):
+        self.assertContains(self.client.get("/login/"), 'class="reveal"', count=1)
+        self.assertContains(self.client.get("/signup/"), 'class="reveal"', count=2)
+
+    def test_login_goes_to_account_page(self):
+        get_user_model().objects.create_user(username="walker", password="Fountain!River728")
+        response = self.client.post("/login/", {"username": "walker", "password": "Fountain!River728"})
+        self.assertRedirects(response, "/account/")
+        self.assertContains(self.client.get("/account/"), "Hi, walker!")
+
+    def test_wrong_password_shows_error(self):
+        get_user_model().objects.create_user(username="walker", password="Fountain!River728")
+        response = self.client.post("/login/", {"username": "walker", "password": "nope"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Please enter a correct username and password")
+
+    def test_signup_page_creates_account_and_lands_on_account_page(self):
+        response = self.client.post("/signup/", {
+            "username": "direct-user", "password1": "Fountain!River728", "password2": "Fountain!River728",
+        })
+        self.assertRedirects(response, "/account/")
+        self.assertEqual(get_user_model().objects.get(username="direct-user").profile.total_points, 0)
+
+    def test_account_page_requires_login(self):
+        self.assertRedirects(self.client.get("/account/"), "/login/?next=/account/")
+
+    def test_admin_uses_playpen_sans(self):
+        self.assertContains(self.client.get("/admin/login/"), "Playpen Sans")

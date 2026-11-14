@@ -37,15 +37,28 @@ function distanceMeters(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
+// fetch() that says which server it could not reach, and notices a down ngrok tunnel.
+async function fetchDjango(url, options) {
+  const origin = new URL(url).origin;
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch (err) {
+    const reason = err.cause?.code || err.cause?.message || err.message;
+    throw new Error(`Could not reach Django at ${origin} (${reason}).`);
+  }
+  if (res.headers.get("ngrok-error-code")) {
+    throw new Error(`The ngrok tunnel for ${origin} is not running.`);
+  }
+  return res;
+}
+
 // Every entry in the database (of any type), sorted nearest-first from lat/lon.
 async function listFacilities(lat, lon) {
   const url = new URL(DJANGO_API_URL);
   url.searchParams.set("lat", lat);
   url.searchParams.set("lon", lon);
-  const res = await fetch(url, { headers: DJANGO_HEADERS, signal: AbortSignal.timeout(10000) });
-  if (res.headers.get("ngrok-error-code")) {
-    throw new Error("The Django server is offline (its ngrok tunnel isn't running).");
-  }
+  const res = await fetchDjango(url, { headers: DJANGO_HEADERS, signal: AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error(`Django API responded with ${res.status}`);
   const body = await res.json();
   return Array.isArray(body) ? body : body.facilities || [];
@@ -109,16 +122,12 @@ async function sendToDjango(fountain) {
   const headers = { ...DJANGO_HEADERS, "Content-Type": "application/json" };
   if (DJANGO_UPLOAD_TOKEN) headers["X-Upload-Token"] = DJANGO_UPLOAD_TOKEN;
 
-  const res = await fetch(DJANGO_UPLOAD_URL, {
+  const res = await fetchDjango(DJANGO_UPLOAD_URL, {
     method: "POST",
     headers,
     body: JSON.stringify(fountain),
     signal: AbortSignal.timeout(15000),
   });
-
-  if (res.headers.get("ngrok-error-code")) {
-    throw new Error("The Django server is offline (its ngrok tunnel isn't running).");
-  }
 
   if (!res.ok) {
     let detail = "";

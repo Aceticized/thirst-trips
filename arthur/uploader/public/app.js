@@ -1,5 +1,8 @@
-const uploadBtn = document.getElementById("upload-btn");
+const uploadBtn = document.getElementById("upload-btn"); // only used when the live camera can't open
 const cameraInput = document.getElementById("camera-input");
+const cameraBox = document.getElementById("camera");
+const viewfinder = document.getElementById("viewfinder");
+const shutter = document.getElementById("shutter");
 const statusEl = document.getElementById("status");
 const preview = document.getElementById("preview");
 const previewImg = document.getElementById("preview-img");
@@ -11,12 +14,25 @@ const floorInput = document.getElementById("floor");
 const accessibleInput = document.getElementById("accessible");
 const formError = document.getElementById("form-error");
 const submitBtn = document.getElementById("submit-btn");
+const retakeBtn = document.getElementById("retake-btn");
 const results = document.getElementById("results");
 
 const FLOOR_PATTERN = /^[A-Za-z]?\d+$/; // a number, or a letter then a number (e.g. 2, M2)
 
 let locationPromise = null;
 let current = null;
+let stream = null;
+
+// Picture buttons: grow while held, shrink on release.
+function addPressEffect(button) {
+  const release = () => button.classList.remove("pressed");
+  button.addEventListener("pointerdown", () => button.classList.add("pressed"));
+  for (const type of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) {
+    button.addEventListener(type, release);
+  }
+  button.addEventListener("contextmenu", (e) => e.preventDefault());
+  return release;
+}
 
 function getLocation() {
   return new Promise((resolve, reject) => {
@@ -69,22 +85,46 @@ async function lookUpBuilding(lat, lon) {
   buildingNote.textContent = "Couldn't detect the building - please type it.";
 }
 
-uploadBtn.addEventListener("click", () => {
-  statusEl.textContent = "";
-  // Start the location request now (inside the tap) so the permission prompt
-  // appears and the fix is ready by the time the photo is taken.
-  locationPromise = getLocation();
-  locationPromise.catch(() => {});
-  cameraInput.value = "";
-  cameraInput.click();
-});
+// ---------- Camera: opens as soon as the page does ----------
 
-cameraInput.addEventListener("change", async () => {
-  const file = cameraInput.files[0];
-  if (!file) return;
+function stopCamera() {
+  if (stream) stream.getTracks().forEach((track) => track.stop());
+  stream = null;
+  viewfinder.srcObject = null;
+}
+
+// Browsers only open the system camera app after a tap, so this shows the live camera inside
+// the page instead. If that isn't possible, the "Take a photo" button is shown as a fallback.
+async function startCamera() {
+  stopCamera();
+  uploadBtn.hidden = true;
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return useFilePicker();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 960 } },
+      audio: false,
+    });
+    viewfinder.srcObject = stream;
+    cameraBox.hidden = false;
+  } catch {
+    useFilePicker();
+  }
+}
+
+function useFilePicker() {
+  cameraBox.hidden = true;
+  uploadBtn.hidden = false;
+  if (!statusEl.textContent) statusEl.textContent = "Couldn't open the camera here. Tap the button to take a photo instead.";
+}
+
+async function handlePhoto(blob) {
+  stopCamera();
+  cameraBox.hidden = true;
+  uploadBtn.hidden = true;
+  statusEl.textContent = "";
 
   if (current) URL.revokeObjectURL(current.url);
-  current = { url: URL.createObjectURL(file), lat: null, lon: null };
+  current = { url: URL.createObjectURL(blob), lat: null, lon: null };
 
   previewImg.src = current.url;
   previewCoords.textContent = "Getting location...";
@@ -102,13 +142,52 @@ cameraInput.addEventListener("change", async () => {
     previewCoords.textContent = `Lat: ${loc.lat}  Lon: ${loc.lon}`;
   } catch (err) {
     previewCoords.textContent = "";
-    statusEl.textContent = err.message + " Tap Upload Fountain to try again.";
+    statusEl.textContent = err.message + " Try taking the photo again.";
     preview.hidden = true;
+    startCamera();
     return;
   }
 
   await lookUpBuilding(current.lat, current.lon);
   updateSubmitState();
+}
+
+shutter.addEventListener("click", () => {
+  const width = viewfinder.videoWidth;
+  const height = viewfinder.videoHeight;
+  if (!width || !height) return; // the camera isn't ready yet
+
+  // Start the location request with the tap so the fix is ready as the photo is processed.
+  locationPromise = getLocation();
+  locationPromise.catch(() => {});
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d").drawImage(viewfinder, 0, 0, width, height);
+  canvas.toBlob((blob) => blob && handlePhoto(blob), "image/jpeg", 0.85);
+});
+
+uploadBtn.addEventListener("click", () => {
+  statusEl.textContent = "";
+  locationPromise = getLocation();
+  locationPromise.catch(() => {});
+  cameraInput.value = "";
+  cameraInput.click();
+});
+
+cameraInput.addEventListener("change", () => {
+  const file = cameraInput.files[0];
+  if (file) handlePhoto(file);
+});
+
+retakeBtn.addEventListener("click", () => {
+  if (current) URL.revokeObjectURL(current.url);
+  current = null;
+  preview.hidden = true;
+  previewImg.removeAttribute("src");
+  statusEl.textContent = "";
+  startCamera();
 });
 
 buildingInput.addEventListener("input", updateSubmitState);
@@ -154,7 +233,7 @@ form.addEventListener("submit", async (e) => {
 
   formError.textContent = "";
   submitBtn.disabled = true;
-  submitBtn.textContent = "Submitting...";
+  submitBtn.classList.add("busy");
 
   try {
     const { record } = await fetchJson("api/upload", {
@@ -173,13 +252,28 @@ form.addEventListener("submit", async (e) => {
     current = null;
     preview.hidden = true;
     previewImg.removeAttribute("src");
+    startCamera(); // ready for the next fountain
   } catch (err) {
     formError.textContent = err.message;
     updateSubmitState();
   } finally {
-    submitBtn.textContent = "Submit";
+    submitBtn.classList.remove("busy");
   }
 });
 
-// Shown only when this page is served under the home app (e.g. /uploader/), not on its own at "/".
-if (location.pathname !== "/") document.getElementById("back-link").hidden = false;
+addPressEffect(shutter);
+addPressEffect(submitBtn);
+
+// Back button: shown only when this page is served under the home app (e.g. /uploader/), not on its own at "/".
+const backLink = document.getElementById("back-link");
+if (location.pathname !== "/") backLink.hidden = false;
+const releaseBack = addPressEffect(backLink);
+backLink.addEventListener("click", (e) => {
+  e.preventDefault();
+  releaseBack();
+  setTimeout(() => { location.href = backLink.getAttribute("href"); }, 150); // let the shrink show first
+});
+
+// Straight to the camera. Asking for location now makes the permission prompt appear right away.
+getLocation().catch(() => {});
+startCamera();

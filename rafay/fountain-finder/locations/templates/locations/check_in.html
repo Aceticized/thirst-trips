@@ -1,15 +1,15 @@
-<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fountain Finder — Check in</title></head>
-<body><main>
+{% extends "locations/auth_base.html" %}
+{% block title %}Check In · Fountain Finder{% endblock %}
+{% block content %}
 <h1>{{ facility.name }}</h1>
-<p>{{ facility.building }}{% if facility.floor %}, floor {{ facility.floor }}{% endif %}</p>
+<p class="sub">{{ facility.building }}{% if facility.floor %}, floor {{ facility.floor }}{% endif %}</p>
 {% if visit %}
-<p>You have checked in here today and earned {{ visit.points_awarded }} points. Come back tomorrow to earn more.</p>
+<p class="note">You have checked in here today and earned {{ visit.points_awarded }} points. Come back tomorrow to earn more.</p>
 {% else %}
-<p>Confirm your visit to earn 10 points. You can earn points here once per day (UTC).</p>
-<form method="post">{% csrf_token %}<button type="submit">Confirm check-in</button></form>
+<p class="note">Confirm your visit to earn 10 points. You can earn points here once per day (UTC).</p>
+<form method="post">{% csrf_token %}<button class="btn" type="submit">Confirm check-in</button></form>
 {% endif %}
-<p>Your total: {{ profile.total_points }} points.</p>
-<a href="{% url 'profile' %}">View my points</a>
-</main></body></html>
+<p class="big-number">{{ profile.total_points }}</p>
+<p class="caption">total points</p>
+<a class="btn secondary" href="{% url 'profile' %}">View my points</a>
+{% endblock %}

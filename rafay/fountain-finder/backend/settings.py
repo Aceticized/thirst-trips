@@ -28,9 +28,17 @@ SECRET_KEY = 'django-insecure-6v%2g-summary for chatgpt(%)o16)cidv)3rg0uu*d6gv1$
 DEBUG = True
 
 
+# Public address of this server: cloudflared forwards https://data.thirsttrips-ua.ca to
+# http://localhost:8000.
+PUBLIC_URL = "https://data.thirsttrips-ua.ca"
+
+# The map website, linked from the account page.
+HOME_URL = "https://thirsttrips-ua.ca"
+
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
+    urlsplit(PUBLIC_URL).hostname,
 ]
 
 
@@ -64,7 +72,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # project-wide overrides, e.g. the admin font
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -153,7 +161,11 @@ if NGROK_URL:
 CORS_ALLOWED_ORIGINS = ["https://thirsttrips-ua.ca"]
 CORS_ALLOW_CREDENTIALS = True
 CORS_URLS_REGEX = r"^/api/.*$"
-CSRF_TRUSTED_ORIGINS = [*globals().get("CSRF_TRUSTED_ORIGINS", []), *CORS_ALLOWED_ORIGINS]
+CSRF_TRUSTED_ORIGINS = [*globals().get("CSRF_TRUSTED_ORIGINS", []), PUBLIC_URL, *CORS_ALLOWED_ORIGINS]
+
+# cloudflared connects over plain HTTP and says which scheme the visitor used. Without
+# this Django thinks every tunnelled request is insecure and rejects form POSTs.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # The ngrok backend and frontend domain are different sites. HTTPS cookies
 # must opt into cross-site requests; preserve local HTTP development otherwise.

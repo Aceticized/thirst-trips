@@ -19,11 +19,69 @@ const statusEl = document.getElementById("status");
 
 // ---------- Map with every fountain (desktop and mobile) ----------
 
-const map = L.map("map").setView([53.5461, -113.4938], 12);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19,
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-}).addTo(map);
+// No attribution control: the corner credits (Leaflet, OpenFreeMap) are hidden on purpose.
+const map = L.map("map", { zoomSnap: 0.5, attributionControl: false }).setView([53.5461, -113.4938], 12);
+
+// The picture used for every fountain on the map. The drip at the bottom is the exact spot.
+const waypointIcon = L.icon({
+  iconUrl: "img/waypoint.png?v=1",
+  iconSize: [38, 65],
+  iconAnchor: [17, 65],
+  popupAnchor: [2, -60],
+});
+
+// The marker of the selected fountain is drawn a bit bigger.
+const selectedIcon = L.icon({
+  iconUrl: "img/waypoint.png?v=1",
+  iconSize: [46, 78],
+  iconAnchor: [21, 78],
+  popupAnchor: [2, -72],
+});
+
+// Set by the mobile code below: called when a fountain is tapped, and when the map is tapped.
+let onSelect = null;
+
+// Green-tinted colours for the map layers (everything else keeps the style's own colours).
+const GREEN_TINT = {
+  background: { "background-color": "#e2eed9" },
+  park: { "fill-color": "#c9e3bb" },
+  landcover_wood: { "fill-color": "#bcdcae" },
+  landuse_residential: { "fill-color": "#dbead2" },
+  water: { "fill-color": "#b7dcd6" },
+  building: { "fill-color": "#b3d3a9" },
+};
+
+// OpenStreetMap-based map without any labels (no names, numbers or icons), tinted green, with
+// the building outlines drawn clearly. Falls back to a label-free raster map if it can't load.
+async function addBasemap() {
+  try {
+    const res = await fetch("https://tiles.openfreemap.org/styles/positron");
+    const style = await res.json();
+    style.layers = style.layers.filter((layer) => layer.type !== "symbol");
+    for (const layer of style.layers) {
+      if (GREEN_TINT[layer.id]) layer.paint = { ...layer.paint, ...GREEN_TINT[layer.id] };
+    }
+    style.layers.push({
+      id: "building-outline",
+      type: "line",
+      source: "openmaptiles",
+      "source-layer": "building",
+      minzoom: 13,
+      paint: {
+        "line-color": "#5b8a62",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.4, 19, 1.6],
+      },
+    });
+    L.maplibreGL({ style }).addTo(map);
+  } catch {
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      subdomains: "abcd",
+      className: "green-tiles",
+    }).addTo(map);
+  }
+}
+addBasemap();
 
 async function loadFountains() {
   try {
@@ -42,7 +100,8 @@ async function loadFountains() {
       if (f.accessible === true) details.push("Accessible");
       if (details.length) popup.append(document.createElement("br"), details.join(" \u00B7 "));
       popup.append(document.createElement("br"), `${fmt(f.lat)}, ${fmt(f.lon)}`);
-      L.marker([f.lat, f.lon]).addTo(map).bindPopup(popup);
+      const marker = L.marker([f.lat, f.lon], { icon: waypointIcon }).addTo(map).bindPopup(popup, { autoPan: false });
+      marker.on("click", () => onSelect && onSelect(f, marker));
       bounds.push([f.lat, f.lon]);
     }
     countEl.textContent = `${fountains.length} fountain${fountains.length === 1 ? "" : "s"}`;
@@ -53,75 +112,165 @@ async function loadFountains() {
   }
 }
 
-function showStatus(message) {
+function showStatus(message, info = false) {
   if (!mobile) return;
   statusEl.textContent = message;
+  statusEl.classList.toggle("info", info);
   statusEl.hidden = !message;
+}
+
+// Picture buttons: grow while held, shrink on release, and only then do the action.
+function makePressable(button, action) {
+  const release = () => button.classList.remove("pressed");
+  button.addEventListener("pointerdown", () => button.classList.add("pressed"));
+  for (const type of ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"]) {
+    button.addEventListener(type, release);
+  }
+  button.addEventListener("contextmenu", (e) => e.preventDefault());
+  button.addEventListener("click", (e) => {
+    e.preventDefault(); // links wait for the shrink animation too
+    release();
+    if (button.disabled) return;
+    setTimeout(action, 150); // let the shrink animation show first
+  });
 }
 
 loadFountains();
 
-// ---------- Mobile-only: your location dot and the buttons ----------
+// ---------- Mobile-only: your location dot, the buttons and fountain selection ----------
 
 if (mobile) {
   const drinkBtn = document.getElementById("drink-btn");
-  document.getElementById("upload-btn").hidden = false;
-  drinkBtn.hidden = false;
+  const uploadBtn = document.getElementById("upload-btn");
+  uploadBtn.hidden = false;
+  drinkBtn.hidden = false; // it waits below the screen until a fountain is selected
+
+  const ROUTE_DRAW_MS = 700;
+
+  let you = null; // [lat, lon] of the user, once GPS has a fix
+  let gpsFailed = false;
+  let selected = null; // { fountain, marker } of the fountain that was tapped
+  let routeLine = null;
+  let routeDone = false; // true once the line reaches the fountain
+  let drawFrame = 0;
+  let drawToken = 0; // bumped to cancel a line that is still being drawn
+
+  const clearInfoStatus = () => {
+    if (statusEl.classList.contains("info")) showStatus("");
+  };
+
+  function clearRoute() {
+    drawToken++;
+    cancelAnimationFrame(drawFrame);
+    if (routeLine) routeLine.remove();
+    routeLine = null;
+    routeDone = false;
+  }
+
+  function deselect() {
+    if (!selected) return;
+    selected.marker.setIcon(waypointIcon);
+    selected = null;
+    clearRoute();
+    drinkBtn.classList.remove("show");
+    clearInfoStatus();
+  }
+
+  // Draws the dotted line from you to the fountain, then slides DRINK! in.
+  function drawRoute() {
+    clearRoute();
+    drinkBtn.classList.remove("show");
+    if (!selected) return;
+
+    if (!you) {
+      if (gpsFailed) drinkBtn.classList.add("show"); // no position, so no line: still allow DRINK!
+      else showStatus("Finding your location...", true);
+      return;
+    }
+    clearInfoStatus();
+
+    const target = [selected.fountain.lat, selected.fountain.lon];
+    routeLine = L.polyline([you, you], {
+      className: "route-line",
+      color: "#1a8cff",
+      weight: 6,
+      opacity: 0.95,
+      dashArray: "0.1 14",
+      lineCap: "round",
+      interactive: false,
+    }).addTo(map);
+
+    map.fitBounds([you, target], { paddingTopLeft: [50, 180], paddingBottomRight: [50, 240], maxZoom: 18 });
+
+    const token = drawToken;
+    const started = performance.now();
+    const step = (now) => {
+      if (token !== drawToken) return;
+      const t = Math.min(1, (now - started) / ROUTE_DRAW_MS);
+      const eased = 1 - (1 - t) ** 3;
+      const end = [you[0] + (target[0] - you[0]) * eased, you[1] + (target[1] - you[1]) * eased];
+      routeLine.setLatLngs([you, end]);
+      if (t < 1) {
+        drawFrame = requestAnimationFrame(step);
+      } else {
+        routeDone = true;
+        drinkBtn.classList.add("show");
+      }
+    };
+    drawFrame = requestAnimationFrame(step);
+  }
+
+  onSelect = (fountain, marker) => {
+    if (selected && selected.fountain === fountain) return;
+    if (selected) selected.marker.setIcon(waypointIcon);
+    selected = { fountain, marker };
+    marker.setIcon(selectedIcon);
+    drawRoute();
+  };
+  map.on("click", deselect);
 
   if (navigator.geolocation) {
     let youMarker = null;
     navigator.geolocation.watchPosition(
       (pos) => {
-        const here = [pos.coords.latitude, pos.coords.longitude];
+        you = [pos.coords.latitude, pos.coords.longitude];
+        gpsFailed = false;
         if (!youMarker) {
-          youMarker = L.marker(here, {
+          youMarker = L.marker(you, {
             icon: L.divIcon({ className: "", html: '<div class="you-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
             interactive: false,
             zIndexOffset: 1000,
           }).addTo(map);
         } else {
-          youMarker.setLatLng(here);
+          youMarker.setLatLng(you);
         }
+
+        if (selected && !routeLine) drawRoute(); // the fountain was tapped before GPS was ready
+        else if (routeDone) routeLine.setLatLngs([you, [selected.fountain.lat, selected.fountain.lon]]);
       },
-      () => {},
+      () => {
+        gpsFailed = true;
+        if (selected && !you) drawRoute();
+      },
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
+  } else {
+    gpsFailed = true;
   }
 
-  drinkBtn.addEventListener("click", () => {
-    showStatus("");
-    drinkBtn.disabled = true;
-    drinkBtn.textContent = "Finding...";
+  makePressable(uploadBtn, () => {
+    location.href = "uploader/";
+  });
 
-    const reset = (message) => {
-      showStatus(message);
-      drinkBtn.disabled = false;
-      drinkBtn.textContent = "DRINK!";
-    };
-
-    if (!navigator.geolocation) return reset("Geolocation is not supported on this device.");
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          const res = await fetch(`api/nearest?lat=${latitude}&lon=${longitude}`);
-          const fountain = await res.json();
-          if (!res.ok) throw new Error(fountain.error || "Could not find a fountain.");
-
-          const target = new URLSearchParams({
-            lat: fountain.lat,
-            lon: fountain.lon,
-            name: fountainLabel(fountain),
-            return: "../",
-          });
-          location.href = `navigator/?${target}`;
-        } catch (err) {
-          reset(err.message);
-        }
-      },
-      (err) => reset("Could not get your location: " + err.message),
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
-    );
+  makePressable(drinkBtn, () => {
+    if (!selected) return;
+    const { fountain } = selected;
+    const target = new URLSearchParams({
+      lat: fountain.lat,
+      lon: fountain.lon,
+      name: fountainLabel(fountain),
+      return: "../",
+    });
+    location.href = `navigator/?${target}`;
   });
 }

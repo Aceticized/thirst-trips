@@ -12,7 +12,7 @@ Requests use session cookies and CSRF protection. First fetch a CSRF token. Send
 
 ```javascript
 // Use an empty string with a same-domain /api proxy, or the backend origin.
-const API_ORIGIN = 'https://partridge-stubble-even.ngrok-free.dev';
+const API_ORIGIN = 'https://data.thirsttrips-ua.ca';
 let csrfToken;
 
 async function initCsrf() {
@@ -93,7 +93,11 @@ Only administrators should mark trusted accounts as staff using Django admin. Re
 
 JSON endpoints generally return 400 for validation, 401 for missing login, 403 for insufficient permissions, and 415 for a non-JSON write body. Form validation errors are returned under `errors`. Check-ins still use a static NFC token and do not prove physical presence.
 
-## thirsttrips-ua.ca and ngrok
+## data.thirsttrips-ua.ca (Cloudflare tunnel)
+
+Django is published at `https://data.thirsttrips-ua.ca` through a Cloudflare tunnel whose public hostname forwards to the service `http://localhost:8000`. The hostname is already in `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` (`PUBLIC_URL` in `backend/settings.py`), and `SECURE_PROXY_SSL_HEADER` makes Django trust cloudflared's `X-Forwarded-Proto`. No environment variable is needed for this host.
+
+### Using a different tunnel (e.g. ngrok)
 
 Restart Django with `NGROK_URL` set to the actual HTTPS backend tunnel URL. This enables Secure, SameSite=None cookies for the cross-site connection. Frontend requests must use `credentials: 'include'` and the CSRF token returned by `/api/auth/csrf/`, then use the replacement token returned after login or signup. Never try to read the backend cookie from frontend JavaScript.
 
@@ -122,7 +126,6 @@ macOS Django terminal:
 ```bash
 source ../venv/bin/activate
 export UPLOAD_TOKEN="your-long-random-secret"
-export NGROK_URL="https://partridge-stubble-even.ngrok-free.dev"
 python manage.py runserver
 ```
 
@@ -130,7 +133,7 @@ Uploader machine (PowerShell):
 
 ```powershell
 $env:DJANGO_UPLOAD_TOKEN = "your-long-random-secret"
-$env:DJANGO_API_URL = "https://partridge-stubble-even.ngrok-free.dev/api/nearby/"
+$env:DJANGO_API_URL = "https://data.thirsttrips-ua.ca/api/nearby/"
 npm.cmd run tunnel
 ```
 

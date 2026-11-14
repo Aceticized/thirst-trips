@@ -40,6 +40,8 @@ function buildApp() {
   });
 
   app.use("/vendor/leaflet", express.static(path.join(__dirname, "node_modules", "leaflet", "dist")));
+  app.use("/vendor/maplibre", express.static(path.join(__dirname, "node_modules", "maplibre-gl", "dist")));
+  app.use("/vendor/maplibre-leaflet", express.static(path.join(__dirname, "node_modules", "@maplibre", "maplibre-gl-leaflet")));
   app.use(express.static(path.join(__dirname, "public")));
   return app;
 }

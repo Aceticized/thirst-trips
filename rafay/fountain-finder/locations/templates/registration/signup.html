@@ -1,14 +1,13 @@
-<!doctype html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fountain Finder — Sign up</title></head>
-<body><main>
-<h1>Create your account</h1>
-<p>Choose a username and password to track your points.</p>
-<form method="post">
-{% csrf_token %}
-{{ form.as_p }}
-<input type="hidden" name="next" value="{{ next }}">
-<button type="submit">Create account</button>
+{% extends "locations/auth_base.html" %}
+{% load static %}
+{% block title %}Create Account · Fountain Finder{% endblock %}
+{% block content %}
+<h1>Create Account</h1>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {% include "locations/_form_fields.html" %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <button class="img-btn" type="submit" aria-label="Create Account"><img src="{% static 'locations/img/submit.png' %}" alt="" draggable="false"></button>
 </form>
-<p><a href="{% url 'login' %}?next={{ next|urlencode }}">Already have an account? Log in</a></p>
-</main></body></html>
+<p class="alt">Already have an account? <a href="{{ login_url }}{% if next %}?next={{ next|urlencode }}{% endif %}">Log In</a></p>
+{% endblock %}

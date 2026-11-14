@@ -18,7 +18,7 @@ class FacilityAdmin(admin.ModelAdmin):
         if not obj.pk:
             return "Save this facility first."
         from django.conf import settings
-        origin = settings.NGROK_URL or "http://127.0.0.1:8000"
+        origin = settings.NGROK_URL or settings.PUBLIC_URL
         return origin + reverse("check-in", kwargs={"token": obj.nfc_id})
 
 

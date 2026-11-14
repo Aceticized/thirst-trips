@@ -1,0 +1,15 @@
+{% extends "locations/auth_base.html" %}
+{% block title %}Account · Fountain Finder{% endblock %}
+{% block content %}
+<h1>Hi, {{ user.get_username }}!</h1>
+<p class="big-number">{{ profile.total_points }}</p>
+<p class="caption">total points</p>
+<div class="stack">
+  <a class="btn" href="{{ home_url }}">Back to the map</a>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'login-page' %}">
+    <button class="btn secondary" type="submit">Log Out</button>
+  </form>
+</div>
+{% endblock %}
