@@ -214,5 +214,8 @@
     });
   </script>
   {% block scripts %}{% endblock %}
+  {% if user.is_authenticated %}
+  <script src="{% static 'locations/achievements/popup.js' %}" data-assets="{% static 'locations/achievements/' %}" defer></script>
+  {% endif %}
 </body>
 </html>

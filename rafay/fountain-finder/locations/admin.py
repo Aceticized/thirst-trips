@@ -1,7 +1,21 @@
 from django.contrib import admin
 from django.urls import reverse
 
-from .models import CheckIn, Facility, UserProfile
+from .models import CheckIn, Facility, UserProfile, UserAchievement
+
+
+@admin.register(UserAchievement)
+class UserAchievementAdmin(admin.ModelAdmin):
+    list_display = ("user", "code", "unlocked_at", "notification_seen_at")
+    list_filter = ("code",)
+    search_fields = ("user__username",)
+    readonly_fields = ("user", "code", "unlocked_at", "notification_seen_at")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Facility)

@@ -19,6 +19,36 @@ const results = document.getElementById("results");
 
 const FLOOR_PATTERN = /^[A-Za-z]?\d+$/; // a number, or a letter then a number (e.g. 2, M2)
 
+let contributor = null;
+let csrfToken = null;
+async function sessionRequest(path, data) {
+  csrfToken = (await fetchJson("/api/auth/csrf/")).csrfToken;
+  return fetchJson(path, {
+    method: "POST", credentials: "same-origin",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+    body: JSON.stringify(data),
+  });
+}
+const contributorStatus = document.getElementById("contributor-status");
+function setContributor(user) {
+  contributor = user;
+  contributorStatus.textContent = `Contributing as ${user.username}`;
+  document.querySelectorAll("#contributor-login label, #contributor-login button").forEach(el => el.hidden = true);
+  updateSubmitState();
+}
+fetchJson("/api/me/").then(setContributor).catch(() => {});
+document.getElementById("contributor-login").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    setContributor(await sessionRequest("/api/auth/login/", {
+      username: document.getElementById("contributor-username").value,
+      password: document.getElementById("contributor-password").value,
+    }));
+    document.getElementById("contributor-password").value = "";
+    window.dispatchEvent(new Event("achievements:check"));
+  } catch (err) { contributorStatus.textContent = err.message; }
+});
+
 let locationPromise = null;
 let current = null;
 let stream = null;
@@ -53,7 +83,7 @@ function getLocation() {
 
 function updateSubmitState() {
   const ready =
-    current &&
+    contributor && current &&
     current.lat !== null &&
     buildingInput.value.trim() !== "" &&
     FLOOR_PATTERN.test(floorInput.value.trim());
@@ -236,17 +266,16 @@ form.addEventListener("submit", async (e) => {
   submitBtn.classList.add("busy");
 
   try {
-    const { record } = await fetchJson("api/upload", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const record = await sessionRequest("/api/facilities/discover/", {
+        name: "Community fountain", facility_type: "fountain",
         latitude: Number(current.lat),
         longitude: Number(current.lon),
         building: buildingInput.value.trim(),
         floor: floorInput.value.trim(),
         accessible: accessibleInput.checked,
-      }),
     });
+
+    window.dispatchEvent(new Event("achievements:check"));
 
     addResultCard(current, record);
     current = null;

@@ -3,6 +3,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from .models import CheckIn, UserProfile
+from .achievements import unlock_achievements
 
 
 @transaction.atomic
@@ -19,4 +20,6 @@ def check_in(user, facility):
             total_points=F("total_points") + visit.points_awarded
         )
     profile.refresh_from_db()
+    # Keep the existing three-value return contract for HTML callers.
+    visit.new_achievements = unlock_achievements(user) if created else []
     return visit, created, profile

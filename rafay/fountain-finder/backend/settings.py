@@ -33,7 +33,7 @@ DEBUG = True
 PUBLIC_URL = "https://data.thirsttrips-ua.ca"
 
 # The map website, linked from the account page.
-HOME_URL = "https://thirsttrips-ua.ca"
+HOME_URL = os.environ.get("HOME_URL", "https://thirsttrips-ua.ca")
 
 ALLOWED_HOSTS = [
     "127.0.0.1",

@@ -267,8 +267,25 @@ if (mobile) {
     gpsFailed = true;
   }
 
-  makePressable(uploadBtn, () => {
-    location.href = "uploader/";
+  makePressable(uploadBtn, async () => {
+    if (uploadBtn.getAttribute("aria-busy") === "true") return;
+    uploadBtn.setAttribute("aria-busy", "true");
+    try {
+      const response = await fetch("/api/me/", {
+        credentials: "same-origin", cache: "no-store",
+      });
+      if (response.ok) {
+        location.href = "/uploader/";
+      } else if (response.status === 401) {
+        location.href = "/login/?next=%2Fuploader%2F";
+      } else {
+        showStatus("Could not check your login. Please try again.");
+      }
+    } catch {
+      showStatus("Could not connect. Please try again.");
+    } finally {
+      uploadBtn.removeAttribute("aria-busy");
+    }
   });
 
   // The account page lives on the Django site. It shows the log-in page first if nobody is logged in.

@@ -15,8 +15,11 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
-from .models import Facility, UserProfile
+from .models import Facility, UserProfile, UserAchievement
+from django.utils import timezone
+from .achievements import unlock_achievements
 from .services import check_in
+from .achievements import achievement_status
 
 
 FACILITY_FIELDS = (
@@ -109,6 +112,50 @@ def me(request):
     return JsonResponse(account_data(request.user))
 
 
+@endpoint(["GET"], authenticated=True)
+def achievements(request):
+    return JsonResponse({"achievements": achievement_status(request.user)})
+
+
+@endpoint(["POST"], authenticated=True)
+def claim_achievement_notifications(request):
+    """Atomically consume each notification, including across tabs and devices."""
+    notifications = []
+    status = {item["code"]: item for item in achievement_status(request.user)}
+    with transaction.atomic():
+        for award in UserAchievement.objects.filter(user=request.user, notification_seen_at__isnull=True):
+            claimed = UserAchievement.objects.filter(pk=award.pk, notification_seen_at__isnull=True).update(
+                notification_seen_at=timezone.now()
+            )
+            if claimed and award.code in status:
+                notifications.append(status[award.code])
+    return JsonResponse({"notifications": notifications})
+
+
+@endpoint(["POST"], authenticated=True)
+def discover_facility(request):
+    """Credit the authenticated contributor, never a client-supplied user ID."""
+    with transaction.atomic():
+        if request.payload.get("facility_type", "fountain") != "fountain":
+            return JsonResponse({"error": "Only fountain discoveries are accepted"}, status=400)
+        # Reject exact resubmissions; nearby distinct fountains remain allowed.
+        lat, lon = request.payload.get("latitude"), request.payload.get("longitude")
+        if type(lat) in (int, float) and type(lon) in (int, float) and math.isfinite(lat) and math.isfinite(lon):
+            if Facility.objects.filter(latitude=lat, longitude=lon,
+                                       floor=request.payload.get("floor", ""),
+                                       facility_type="fountain").exists():
+                return JsonResponse({"error": "A fountain at these coordinates and floor already exists"}, status=409)
+        response = save_facility(request)
+        if response.status_code != 201:
+            return response
+        data = json.loads(response.content)
+        facility = Facility.objects.get(pk=data["id"])
+        facility.discovered_by = request.user
+        facility.save(update_fields=["discovered_by"])
+        data["new_achievements"] = unlock_achievements(request.user)
+    return JsonResponse(data, status=201)
+
+
 def save_facility(request, instance=None):
     data = request.payload
     if set(data) - set(FACILITY_FIELDS):
@@ -175,7 +222,8 @@ def confirm_check_in(request):
     visit, created, profile = check_in(request.user, facility)
     return JsonResponse({"check_in_id": visit.pk, "created": created,
                          "points_awarded": visit.points_awarded if created else 0,
-                         "total_points": profile.total_points}, status=201 if created else 200)
+                         "total_points": profile.total_points,
+                         "new_achievements": visit.new_achievements}, status=201 if created else 200)
 
 
 @endpoint(["POST"], staff=True)

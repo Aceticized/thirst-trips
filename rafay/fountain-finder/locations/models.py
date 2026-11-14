@@ -25,6 +25,10 @@ class Facility(models.Model):
         validators=[MinValueValidator(-180), MaxValueValidator(180)]
     )
     accessible = models.BooleanField(default=False)
+    discovered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="discovered_facilities",
+    )
 
     def __str__(self):
         return f"{self.name} - {self.building}"
@@ -60,3 +64,21 @@ class CheckIn(models.Model):
 
     def __str__(self):
         return f"{self.user} visited {self.facility} at {self.visited_at}"
+
+
+class UserAchievement(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="achievements"
+    )
+    code = models.CharField(max_length=50)
+    unlocked_at = models.DateTimeField(default=timezone.now, editable=False)
+    notification_seen_at = models.DateTimeField(null=True, blank=True, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "code"], name="one_achievement_per_user")
+        ]
+        ordering = ["unlocked_at", "code"]
+
+    def __str__(self):
+        return f"{self.user}: {self.code}"

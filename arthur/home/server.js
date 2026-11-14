@@ -32,6 +32,52 @@ function getLanAddresses() {
 function buildApp() {
   const app = express();
 
+  // Same-origin browser access to Django sessions, CSRF, and achievements.
+  // Keep the upload secret out of this path: contributions use the user's session.
+  app.use("/achievement-assets", express.static(path.join(__dirname, "..", "..", "rafay", "fountain-finder", "locations", "static", "locations", "achievements")));
+  app.use("/static/locations", express.static(path.join(__dirname, "..", "..", "rafay", "fountain-finder", "locations", "static", "locations")));
+  app.use(async (req, res, next) => {
+    const apiRoute = /^\/api\/(auth\/|me\/|profile\/|checkin\/|achievements\/|facilities\/discover\/)/.test(req.path);
+    const pageRoute = /^\/(account|accounts|login|signup|leaderboard|checkin)\//.test(req.path);
+    if (!apiRoute && !pageRoute) return next();
+    try {
+      const base = new URL(process.env.DJANGO_API_URL || "https://data.thirsttrips-ua.ca/api/nearby/");
+      const headers = { Accept: "application/json" };
+      for (const name of ["cookie", "content-type", "x-csrftoken"]) {
+        if (req.headers[name]) headers[name] = req.headers[name];
+      }
+      if (req.headers.origin) {
+        // Validate browser origin before translating it to the backend origin.
+        if (new URL(req.headers.origin).host !== req.headers.host) return res.sendStatus(403);
+        headers.Origin = base.origin;
+        headers.Referer = base.origin + "/";
+      }
+      const chunks = [];
+      let size = 0;
+      for await (const chunk of req) {
+        size += chunk.length;
+        if (size > 65536) return res.sendStatus(413);
+        chunks.push(chunk);
+      }
+      const upstream = await fetch(new URL(req.originalUrl, base.origin), {
+        method: req.method, headers, redirect: "manual",
+        ...(["GET", "HEAD"].includes(req.method) ? {} : { body: Buffer.concat(chunks) }),
+        signal: AbortSignal.timeout(15000),
+      });
+      res.set("Cache-Control", "no-store");
+      for (const cookie of upstream.headers.getSetCookie()) res.append("Set-Cookie", cookie);
+      const location = upstream.headers.get("location");
+      if (location) {
+        const target = new URL(location, base.origin);
+        res.set("Location", target.origin === base.origin ? target.pathname + target.search + target.hash : location);
+      }
+      res.status(upstream.status).type(upstream.headers.get("content-type") || "application/json")
+        .send(Buffer.from(await upstream.arrayBuffer()));
+    } catch (err) {
+      res.status(424).json({ error: "Cannot reach Django. Please try again." });
+    }
+  });
+
   app.get("/api/fountains", async (req, res) => {
     try {
       const lat = parseFloat(req.query.lat);

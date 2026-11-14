@@ -1,0 +1,9 @@
+.venv/
+.venv-backend/
+node_modules/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.local-backup.sqlite3

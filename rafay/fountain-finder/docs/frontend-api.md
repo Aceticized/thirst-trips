@@ -1,5 +1,74 @@
 # Frontend API
 
+## Achievements
+
+### Discovery and one-time notifications
+
+`POST /api/facilities/discover/` uses the logged-in user's session and CSRF token.
+It accepts the same facility fields as staff creation, but only type `fountain`.
+It credits `discovered_by` from the session (client-supplied contributor fields are
+rejected), creates a facility, and returns its fields plus `new_achievements`.
+The first submission unlocks `new_fountain` / Fountain Finder. Exact coordinates
+and floor matching an existing fountain return 409. This is community submission,
+not moderated verification; approximate duplicates are not detected yet.
+The shared-token uploader remains compatible but cannot award contributor credit.
+
+`POST /api/achievements/notifications/claim/` with `{}` and CSRF returns
+`{"notifications": [...]}` using the achievement entry format below. It atomically
+marks notifications consumed for the current account. They never return again,
+even on another device. **Delivery is at most once:** navigating away or losing the
+response after a successful claim can lose the celebration. The achievement itself
+remains visible in GET `/api/achievements/`.
+
+The popup script is included in Django's authenticated pages and the combined
+home/map, navigator, and uploader pages. It shows each claim for 6.5 seconds,
+uses Matthew's achievement sound, and allows dismissal. Browsers may require a tap
+on its sound button before audio can play. It does not replay notifications from
+`new_achievements`; that field remains available for other clients.
+
+The combined home server proxies auth, achievement, and discovery API requests to
+the Django origin configured by `DJANGO_API_URL`, preserving session cookies and
+CSRF. The contributor sign-in form uses that proxy. Run the combined home app for
+this integration; standalone navigator/uploader servers do not provide this proxy.
+
+`GET /api/achievements/` requires a logged-in session and returns
+`{"achievements": [...]}` for the current user only. This is read-only; clients cannot
+assign achievements or select a different user. Each entry contains:
+
+```json
+{
+  "code": "points_50",
+  "name": "Getting Hydrated",
+  "description": "Earn 50 points from check-ins.",
+  "metric": "earned_points",
+  "target": 50,
+  "progress": 30,
+  "unlocked": false,
+  "unlocked_at": null
+}
+```
+
+Rules: `first_check_in` (First Sip) requires 1 check-in; `points_50`
+(Getting Hydrated) requires 50 lifetime check-in points; `fountains_5`
+(Fountain Explorer) requires visits to 5 distinct facilities of type `fountain`.
+Washroom visits count toward the first check-in and earned points, but not fountain exploration.
+Staff balance adjustments do not count toward earned points. Progress is capped at the target.
+
+Successful `POST /api/checkin/` responses now also include `new_achievements`, an array
+of entries in this same format, with `unlocked: true` and an ISO timestamp.
+Use these for immediate notifications. Repeated same-day confirmation returns an empty array.
+Use the GET endpoint for the achievements screen and to recover status after a lost response.
+Do not assume a notification will be delivered again if a successful request is retried.
+
+Unlocks are permanent and do not award extra points. Browser NFC check-ins unlock through
+the same service; authenticated HTML pages now show the shared celebration popup.
+Existing users are evaluated on their next successful new check-in,
+including their previous check-in history. GET never creates unlocks.
+
+Images, sounds, and popup presentation belong to the frontend: map each stable `code`
+to your chosen assets. No asset URLs are prescribed by the backend yet.
+Contributor credit is available through the session-authenticated discovery endpoint above.
+
 Django stores the data in SQLite. Frontends use these HTTP endpoints instead of accessing the database file. Existing HTML pages remain available.
 
 ## Hosting and sessions
