@@ -23,6 +23,8 @@
     if (!form) return;
     var sound = new Audio("{% static 'locations/audio/achievement.mp3' %}");
     sound.preload = "auto";
+    // An achievement popup has its own (identical) sound, so the claim sound steps aside when one appears.
+    window.addEventListener("achievements:popup", function () { sound.pause(); });
 
     form.addEventListener("submit", function (event) {
       event.preventDefault();
@@ -40,6 +42,7 @@
           var fresh = new DOMParser().parseFromString(html, "text/html").querySelector(".card");
           if (!fresh) throw new Error("unexpected page");
           document.querySelector(".card").innerHTML = fresh.innerHTML;
+          window.dispatchEvent(new Event("achievements:check")); // show the popup if this claim unlocked something
         })
         .catch(function () {
           form.submit(); // plain form post as a fallback (the sound may stop)

@@ -39,6 +39,11 @@ class UserProfile(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
     )
     total_points = models.PositiveIntegerField(default=0)
+    # The accessories the player's raccoon wears (see locations/avatar.py). Empty means nothing is worn.
+    avatar_eyes = models.CharField(max_length=20, blank=True, default="white")
+    avatar_mouth = models.CharField(max_length=20, blank=True, default="happy")
+    avatar_top = models.CharField(max_length=20, blank=True, default="")
+    avatar_hat = models.CharField(max_length=20, blank=True, default="")
 
     def __str__(self):
         return f"{self.user} ({self.total_points} points)"

@@ -1,0 +1,112 @@
+{% extends "locations/auth_base.html" %}
+{% load avatar_tags %}
+{% block title %}Your raccoon · Fountain Finder{% endblock %}
+{% block content %}
+<h1>Your raccoon</h1>
+{% if error %}<div class="alert" role="alert"><p>{{ error }}</p></div>{% endif %}
+<div class="preview">{% avatar avatar "full" label="Your raccoon" preview=True %}</div>
+<p class="points-line">
+  You have <strong>{{ profile.total_points }}</strong> points.
+  {% if upcoming %}Next unlock: <strong>{{ upcoming.name }}</strong> at {{ upcoming.points }} points.{% else %}Everything is unlocked!{% endif %}
+</p>
+
+<form method="post" id="avatar-form">
+  {% csrf_token %}
+  {% for slot, key in avatar.items %}<input type="hidden" name="{{ slot }}" value="{{ key }}">{% endfor %}
+
+  <div class="tabs" role="tablist">
+    {% for tab in tabs %}
+    <button type="button" class="tab press" role="tab" id="tab-{{ tab.id }}" aria-controls="panel-{{ tab.id }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+      <img src="{{ tab.icon }}" alt=""><span>{{ tab.title }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  {% for tab in tabs %}
+  <section id="panel-{{ tab.id }}" role="tabpanel" aria-labelledby="tab-{{ tab.id }}"{% if not forloop.first %} hidden{% endif %}>
+    {% for group in tab.groups %}
+    <p class="group-title">{{ group.heading }}</p>
+    <div class="items">
+      {% for entry in group.items %}
+      <button type="button" class="tile press{% if entry.worn %} worn{% endif %}{% if not entry.unlocked %} locked{% endif %}"
+              data-slot="{{ entry.slot }}" data-key="{{ entry.key }}" aria-pressed="{% if entry.worn %}true{% else %}false{% endif %}"
+              {% if not entry.unlocked %}aria-disabled="true"{% endif %}>
+        {% avatar_item entry.item %}
+        <span class="tile-name">{{ entry.name }}</span>
+        <span class="tile-lock"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7a5 5 0 0 1 10 0v3h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm2 0h6V7a3 3 0 0 0-6 0z"/></svg>{{ entry.points }} points</span>
+      </button>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endfor %}
+
+  <p class="wardrobe-msg" id="wardrobe-msg" role="status" aria-live="polite"></p>
+  <button class="btn" type="submit">Save</button>
+  <p class="wardrobe-hint">Tap an item to wear it, and tap it again to take it off. Grey items unlock as you earn points.</p>
+</form>
+<a class="btn secondary" href="{% url 'account' %}">Back</a>
+
+{{ wardrobe_data|json_script:"wardrobe-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var data = JSON.parse(document.getElementById("wardrobe-data").textContent);
+    var form = document.getElementById("avatar-form");
+    var message = document.getElementById("wardrobe-msg");
+    var preview = document.querySelector(".preview .avatar");
+    var state = Object.assign({}, data.equipped);
+
+    function show() {
+      Object.keys(state).forEach(function (slot) {
+        var layer = preview.querySelector('img[data-slot="' + slot + '"]');
+        var item = state[slot] && data.items[slot][state[slot]];
+        if (item) { layer.src = item.url; layer.hidden = false; } else { layer.hidden = true; }
+        form.elements[slot].value = state[slot];
+      });
+      document.querySelectorAll(".tile").forEach(function (tile) {
+        var worn = state[tile.dataset.slot] === tile.dataset.key;
+        tile.classList.toggle("worn", worn);
+        tile.setAttribute("aria-pressed", worn);
+      });
+    }
+
+    function say(text, warn) {
+      message.textContent = text;
+      message.classList.toggle("warn", !!warn);
+    }
+
+    document.querySelectorAll(".tile").forEach(function (tile) {
+      tile.addEventListener("click", function () {
+        var slot = tile.dataset.slot, key = tile.dataset.key, item = data.items[slot][key];
+        if (!item.unlocked) {
+          say(item.name + " unlocks at " + item.points + " points. You have " + data.points + ".", true);
+          tile.classList.remove("shake");
+          void tile.offsetWidth;
+          tile.classList.add("shake");
+          return;
+        }
+        state[slot] = state[slot] === key ? "" : key;
+        say("");
+        show();
+      });
+    });
+
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        tabs.forEach(function (other) {
+          var selected = other === tab;
+          other.setAttribute("aria-selected", selected);
+          document.getElementById(other.getAttribute("aria-controls")).hidden = !selected;
+        });
+        say("");
+      });
+    });
+
+    show();
+  })();
+</script>
+{% endblock %}

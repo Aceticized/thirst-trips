@@ -173,10 +173,58 @@
     .board li { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding: 10px 12px; background: #f0f9ed; border: 2px solid transparent; border-radius: 16px; }
     .board li.me { background: #d9f2d2; border-color: #2e9e4f; }
     .board li.gap { justify-content: center; padding: 0; margin-bottom: 8px; background: none; color: #4d7556; letter-spacing: 0.3em; }
-    .rank { flex: 0 0 40px; height: 40px; display: grid; place-items: center; font-weight: 800; color: #2e7d46; background: #fff; border-radius: 50%; }
-    .rank.r1 { background: #ffd54a; color: #5b4400; }
-    .rank.r2 { background: #dfe3e8; color: #3b4450; }
-    .rank.r3 { background: #e8aa78; color: #5a2f10; }
+    .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+    /* The raccoon: transparent layers stacked on each other. The inner "stage" is sized and moved to zoom in. */
+    .avatar { display: block; position: relative; width: 100%; overflow: hidden; }
+    .avatar-stage { position: absolute; aspect-ratio: 1779 / 1331; }
+    .avatar-stage img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; -webkit-user-select: none; user-select: none; }
+
+    /* Leaderboard: the player's raccoon instead of a rank number. Gold, silver and bronze rings for the top three. */
+    .face { flex: 0 0 56px; width: 56px; height: 56px; overflow: hidden; background: #fff; border: 3px solid #cfe6cb; border-radius: 50%; }
+    .face.r1 { border-color: #f5b800; box-shadow: 0 0 0 3px rgba(245, 184, 0, 0.3); }
+    .face.r2 { border-color: #b3bcc6; box-shadow: 0 0 0 3px rgba(179, 188, 198, 0.3); }
+    .face.r3 { border-color: #d98a4a; box-shadow: 0 0 0 3px rgba(217, 138, 74, 0.3); }
+    .face .avatar { height: 100%; }
+    .board .place { margin-left: 6px; font-weight: 700; color: #2e7d46; }
+
+    /* Anything pressable that grows while held (the script below adds and removes .pressed). */
+    .press { scale: 1; transition: scale 0.12s cubic-bezier(0.2, 1.4, 0.4, 1); -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; touch-action: manipulation; }
+    .press.pressed { scale: 1.08; }
+
+    /* Account page: your raccoon on top; tapping it opens the wardrobe. */
+    .avatar-link { position: relative; display: block; width: 76%; margin: 0 auto 6px; padding: 0; color: inherit; text-decoration: none; }
+    .avatar-link .avatar { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18)); }
+    .avatar-edit { position: absolute; right: 2%; bottom: 4%; display: grid; place-items: center; width: 52px; height: 52px; background: #fff; border: 3px solid #2e9e4f; border-radius: 50%; box-shadow: 0 4px 10px rgba(46, 158, 79, 0.35); }
+    .avatar-edit img { width: 30px; height: auto; }
+
+    /* Wardrobe */
+    .preview { position: relative; width: 82%; margin: 0 auto 8px; }
+    .preview .avatar { filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18)); }
+    .points-line { margin: 0 0 14px; text-align: center; color: #3d6a48; font-size: 0.95rem; }
+    .points-line strong { color: #1f7a3a; }
+    .tabs { display: flex; justify-content: center; gap: 10px; margin: 0 0 14px; }
+    .tab { display: grid; place-items: center; gap: 2px; width: 92px; padding: 8px 4px 6px; font: inherit; font-size: 0.8rem; font-weight: 700; color: #2e7d46; background: #f0f9ed; border: 3px solid transparent; border-radius: 18px; cursor: pointer; }
+    .tab img { width: 42px; height: 42px; object-fit: contain; pointer-events: none; }
+    .tab[aria-selected="true"] { background: #d9f2d2; border-color: #2e9e4f; }
+    .group-title { margin: 12px 4px 8px; font-size: 0.9rem; font-weight: 700; color: #3d6a48; }
+    .items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .tile { position: relative; display: block; padding: 6px 6px 8px; font: inherit; color: inherit; text-align: center; background: #f0f9ed; border: 3px solid transparent; border-radius: 18px; cursor: pointer; }
+    .tile .avatar { aspect-ratio: 1 / 1; background: #fff; border-radius: 12px; }
+    .tile-name { display: block; margin-top: 6px; font-size: 0.78rem; font-weight: 700; line-height: 1.2; }
+    .tile-lock { display: none; margin-top: 2px; font-size: 0.72rem; font-weight: 700; color: #6a756c; }
+    .tile-lock svg { width: 11px; height: 11px; margin-right: 3px; vertical-align: -1px; }
+    .tile.worn { background: #d9f2d2; border-color: #2e9e4f; }
+    .tile.worn::after { content: "\2713"; position: absolute; top: 2px; right: 2px; display: grid; place-items: center; width: 22px; height: 22px; font-size: 0.8rem; font-weight: 800; color: #fff; background: #2e9e4f; border-radius: 50%; }
+    .tile.locked { background: #eef1ee; color: #6a756c; }
+    .tile.locked .avatar { filter: grayscale(1); opacity: 0.55; }
+    .tile.locked .tile-lock { display: block; }
+    .tile.shake { animation: shake 0.35s; }
+    @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    .wardrobe-msg { min-height: 1.4em; margin: 12px 4px 8px; text-align: center; font-size: 0.9rem; color: #3d6a48; }
+    .wardrobe-msg.warn { color: #8a1c14; }
+    .wardrobe-hint { margin: 10px 4px 16px; text-align: center; font-size: 0.8rem; color: #4d7556; }
+    [hidden] { display: none !important; }
     .board .name { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
     .board small { font-weight: 400; color: #4d7556; }
     .board .pts { font-weight: 800; color: #1f7a3a; font-variant-numeric: tabular-nums; }
@@ -208,7 +256,7 @@
     </div>
   </main>
   <script>
-    document.querySelectorAll(".img-btn").forEach(function (button) {
+    document.querySelectorAll(".img-btn, .press").forEach(function (button) {
       var release = function () { button.classList.remove("pressed"); };
       button.addEventListener("pointerdown", function () { button.classList.add("pressed"); });
       ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"].forEach(function (type) {
@@ -230,7 +278,7 @@
   </script>
   {% block scripts %}{% endblock %}
   {% if user.is_authenticated %}
-  <script src="{% static 'locations/achievements/popup.js' %}?v=2" data-assets="{% static 'locations/achievements/' %}" defer></script>
+  <script src="{% static 'locations/achievements/popup.js' %}?v=3" data-assets="{% static 'locations/achievements/' %}" defer></script>
   {% endif %}
 </body>
 </html>

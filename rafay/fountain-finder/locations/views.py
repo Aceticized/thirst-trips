@@ -2,6 +2,9 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
 from .achievements import achievement_status
+from .avatar import (
+    ITEMS, SLOTS, asset_url, clean_choices, equipped_for, is_unlocked, next_unlock, save_choices, wardrobe,
+)
 from .forms import SignupForm
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.cache import never_cache
@@ -136,6 +139,7 @@ def leaderboard(request):
             "username": user_profile.user.get_username(),
             "points": user_profile.total_points,
             "is_me": user_profile.user_id == request.user.id,
+            "avatar": equipped_for(user_profile),
         })
 
     my_profile, _ = UserProfile.objects.get_or_create(user=request.user)
@@ -146,6 +150,7 @@ def leaderboard(request):
             "username": request.user.get_username(),
             "points": my_profile.total_points,
             "is_me": True,
+            "avatar": equipped_for(my_profile),
         }
     return render(request, "locations/leaderboard.html", {
         "rows": rows, "my_row": my_row, "my_points": my_profile.total_points, "size": LEADERBOARD_SIZE,
@@ -174,5 +179,36 @@ def account(request):
     """Landing page after logging in without an NFC tag (the /login/ page)."""
     user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
     return render(request, "locations/account.html", {
-        "profile": user_profile, "home_url": settings.HOME_URL,
+        "profile": user_profile, "home_url": settings.HOME_URL, "avatar": equipped_for(user_profile),
     })
+
+
+@login_required(login_url="login-page")
+@never_cache
+@require_http_methods(["GET", "POST"])
+def avatar_page(request):
+    """Dress the raccoon. Saving only accepts accessories the player has unlocked."""
+    user_profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    error = None
+    if request.method == "POST":
+        choices, error = clean_choices(request.POST, user_profile.total_points)
+        if error is None:
+            save_choices(user_profile, choices)
+            return redirect("account")
+    equipped = equipped_for(user_profile)
+    upcoming = next_unlock(user_profile.total_points)
+    return render(request, "locations/avatar.html", {
+        "profile": user_profile, "avatar": equipped, "tabs": wardrobe(user_profile.total_points, equipped),
+        "error": error, "upcoming": upcoming,
+        "wardrobe_data": {
+            "points": user_profile.total_points,
+            "equipped": equipped,
+            "items": {
+                slot: {
+                    item.key: {"url": asset_url(item.file), "name": item.name, "points": item.points,
+                               "unlocked": is_unlocked(item, user_profile.total_points)}
+                    for item in ITEMS if item.slot == slot
+                } for slot in SLOTS
+            },
+        },
+    }, status=400 if error else 200)

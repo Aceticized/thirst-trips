@@ -1,4 +1,5 @@
 {% extends "locations/auth_base.html" %}
+{% load avatar_tags %}
 {% block title %}Leaderboard · Fountain Finder{% endblock %}
 {% block content %}
 <h1>Leaderboard</h1>
@@ -7,16 +8,16 @@
 <ol class="board">
   {% for row in rows %}
   <li{% if row.is_me %} class="me"{% endif %}>
-    <span class="rank{% if row.rank <= 3 %} r{{ row.rank }}{% endif %}">{{ row.rank }}</span>
-    <span class="name">{{ row.username }}{% if row.is_me %} <small>(you)</small>{% endif %}</span>
+    <span class="face{% if row.rank <= 3 %} r{{ row.rank }}{% endif %}">{% avatar row.avatar "bust" %}</span>
+    <span class="name"><span class="sr-only">Rank {{ row.rank }}: </span>{{ row.username }}{% if row.is_me %} <small>(you)</small>{% endif %}</span>
     <span class="pts">{{ row.points }}</span>
   </li>
   {% endfor %}
   {% if my_row %}
   <li class="gap" aria-hidden="true">&middot;&middot;&middot;</li>
   <li class="me">
-    <span class="rank">{{ my_row.rank }}</span>
-    <span class="name">{{ my_row.username }} <small>(you)</small></span>
+    <span class="face">{% avatar my_row.avatar "bust" %}</span>
+    <span class="name">{{ my_row.username }} <small>(you)</small><span class="place">#{{ my_row.rank }}</span></span>
     <span class="pts">{{ my_row.points }}</span>
   </li>
   {% endif %}

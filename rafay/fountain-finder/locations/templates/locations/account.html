@@ -1,6 +1,11 @@
 {% extends "locations/auth_base.html" %}
+{% load static avatar_tags %}
 {% block title %}Account · Fountain Finder{% endblock %}
 {% block content %}
+<a class="avatar-link press" href="{% url 'avatar' %}" aria-label="Change your avatar">
+  {% avatar avatar "full" %}
+  <span class="avatar-edit"><img src="{% static 'locations/avatar/edit-avatar.png' %}" alt=""></span>
+</a>
 <h1>Hi, {{ user.get_username }}!</h1>
 <p class="big-number">{{ profile.total_points }}</p>
 <p class="caption">total points</p>

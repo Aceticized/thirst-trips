@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -119,3 +120,21 @@ class AchievementTests(TestCase):
         self.assertEqual(first["notifications"][0]["code"], "first_check_in")
         self.assertEqual(self.client.post(url, "{}", content_type="application/json").json()["notifications"], [])
         self.assertIsNotNone(UserAchievement.objects.get(user=self.user).notification_seen_at)
+
+
+class AchievementPopupArtTests(TestCase):
+    STATIC = Path(__file__).resolve().parent / "static" / "locations" / "achievements"
+
+    def test_every_achievement_has_its_popup_picture_and_the_sound_exists(self):
+        from .achievements import ACHIEVEMENTS
+        for item in ACHIEVEMENTS:
+            self.assertTrue((self.STATIC / f"{item['code']}.png").exists(), f"no picture for {item['code']}")
+        self.assertTrue((self.STATIC / "unlock.mp3").exists())
+
+    def test_check_in_page_lets_the_popup_take_over_the_sound(self):
+        user = get_user_model().objects.create_user(username="walker", password="Fountain!River728")
+        facility = Facility.objects.create(name="f1", building="CAB", latitude=53.5, longitude=-113.5)
+        self.client.force_login(user)
+        response = self.client.get(f"/checkin/{facility.nfc_id}/")
+        self.assertContains(response, 'dispatchEvent(new Event("achievements:check"))')
+        self.assertContains(response, '"achievements:popup"')

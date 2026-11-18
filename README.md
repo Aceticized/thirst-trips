@@ -112,15 +112,33 @@ temporary random `trycloudflare.com` address that only shows the Node site.
 | `/navigator/` | AR walk to a fountain (opened by DRINK!). |
 | `/uploader/` | Add a new fountain with the camera. You must be logged in. |
 | `/login/`, `/signup/` | Log in or create an account. |
-| `/account/` | Your points, with links to the leaderboard, achievements and the map. |
-| `/leaderboard/` | The top players. |
+| `/account/` | Your raccoon and points, with links to the leaderboard, achievements and the map. Tap the raccoon to dress it. |
+| `/avatar/` | The wardrobe: switch accessories on and off. Some are locked until you reach a number of points. |
+| `/leaderboard/` | The top players, each shown as their raccoon. |
 | `/achievements/` | Locked and unlocked achievements. |
 | `/checkin/<id>/` | What an NFC tag opens: log in, then press Claim Points. |
 | `/admin/` | Django admin (fountains, users, NFC ids). |
 
-The login, sign-up, account, leaderboard, achievements and check-in pages work on both
+The login, sign-up, account, avatar, leaderboard, achievements and check-in pages work on both
 `thirsttrips-ua.ca` and `data.thirsttrips-ua.ca`. Point NFC tags at
 `https://data.thirsttrips-ua.ca/checkin/<id>/`. The id for each fountain is shown in the admin.
+
+### The raccoon avatar
+
+The artwork lives in `emily/`: `characterbase.png` plus one transparent layer per accessory, all the same size.
+`rafay/fountain-finder/scripts/build_art_assets.py` crops and shrinks them into
+`locations/static/locations/avatar/` (already done and committed; run it again only when the art changes, it needs
+Pillow). `locations/avatar.py` is the list of accessories and the **points each one unlocks at**; change the numbers
+there, or add a line for a new accessory. Items are unlocked by total points, and nobody can wear a locked one (the
+server checks, not just the page). After pulling this change, run `manage.py migrate` (`start.bat` does it for you).
+
+### Achievement popups
+
+When someone unlocks an achievement, a popup shows that achievement's badge from `emily/` (`<code>.png` in
+`locations/static/locations/achievements/`, made by the same `build_art_assets.py`) and plays the celebration sound on its
+own. Browsers only allow sound after the visitor has touched the page, so the popup warms the sound up on the first tap,
+and if a browser still refuses it shows "Tap to hear the sound". A new achievement needs its picture added to `ACHIEVEMENTS`
+in that script; until then it gets a plain text popup.
 
 ## Interior snapshots (for building indoor maps)
 
